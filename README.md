@@ -7,7 +7,9 @@ Instructions:
 
   monutor uses GNU make to process new files and generate pages. 
 
-  To run, you need a site.cfg file in th
+  To run, you need a site.cfg file in this directory. Some examples in the cfg directory
+
+  
 
 
 
