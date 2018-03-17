@@ -13,7 +13,7 @@
 
 .PHONY: all sync clean extract-status extract-header extract-hk extract-event rootify-event rootify-hk rootify-header rootify-status 
 
-all: rootify 
+all: deploy 
 
 include site.cfg
 
@@ -109,9 +109,10 @@ $(LOCAL_DEST)/%.tar: $(LOCAL_DEST)/%.flat.tar  | $(LOCAL_DEST)
 
 # Put all files in tar files so we don't have so many of them 
 $(RAW_DIR)/%.tar: $(RAW_DIR)/%
-	## TODO: add temporary file here to avoid misaps
-	
+	rm -f $@.tmp 
+	if [ -f  $@ ]; then cp $@ $@.tmp ; fi 
 	cd $(@D); tar --update -f $(*F).tar.tmp $(*F)/* 
+	mv $@.tmp $@ 
 	rm -f $</* 
 	rmdir $< 
 
@@ -136,25 +137,27 @@ $(ROOT_DIR)/hk/%.root: $(RAW_DIR)/hk/%.tar
 	nuphaseroot-convert hk $(@D)/$(*F) $@.tmp
 	mv $@.tmp $@ 
 	rm -rf $(@D)/$(*F)  
+	touch new_hk; 
 
 
 rootify: extract rootify.d rootify-event rootify-status rootify-header rootify-hk 
 	touch $@ 
 
-##TODO 
-html/site.js: 
-	touch $@
 
 ##TODO 
-html/runlist.js: 
-	touch $@ 
+html/runlist.js: rootify
+	echo "var runs = [ " > $@ 
+	find $(ROOT_DIR) -type d -name run* -printf '  %f,\n' | sed 's/run//' >> $@ 
+	echo "];" >> $@
 
 $(HTML_DIR)/% : html/% 
 	cp  $< $@
 
+new_hk: 
+	touch $@
 
 # Merge all housekeeping into a single root file since it's small 
-$(HTML_DIR)/all_hk.root: rootify  | $(HTML_DIR) 
+$(HTML_DIR)/all_hk.root: new_hk  | $(HTML_DIR) 
 	hadd  $@.tmp $(ROOT_DIR)/hk/*/*/*.root
 	mv $@.tmp $@
 
@@ -162,9 +165,12 @@ $(HTML_DIR)/all_hk.root: rootify  | $(HTML_DIR)
 $(HTML_DIR)/rootdata:  | $(HTML_DIR) 
 	ln -sf $(ROOT_DIR) $(HTML_DIR)/rootdata 
 
-deploy:  rootify $(HTML_DIR)/rootdata $(HTML_DIR)/index.html $(HTML_DIR)/site.js $(HTML_DIR)/monutor.js  $(HTML_DIR)/runlist.js $(HTML_DIR)/all_hk.root  | $(HTML_DIR) 
-	touch $@ 
+$(HTML_DIR)/jsroot: jsroot/scripts jsroot/style
+	mkdir -p $@
+	cp -r $^ $@
 
+deploy:  rootify $(HTML_DIR)/rootdata $(HTML_DIR)/index.html $(HTML_DIR)/monutor.js  $(HTML_DIR)/runlist.js $(HTML_DIR)/all_hk.root $(HTML_DIR)/jsroot  | $(HTML_DIR) 
+	touch $@ 
 
 
 
