@@ -9,6 +9,8 @@ Instructions:
 
   To run, you need a site.cfg file in this directory. Some examples in the cfg directory
 
+  nuphaseroot is required and nuphaseroot-convert must be in a path (it's called to generate ROOT files) 
+
   
 
 
