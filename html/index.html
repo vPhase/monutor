@@ -3,10 +3,72 @@
     <title> monutor</title>
 
 
+
+
+    <script type="text/javascript" src="jsroot/scripts/JSRootCore.js?2d&io&tree"> 
+    <script type="text/javascript" src="runlist.js"></script>
+    <script type="text/javascript" src="monutor.js"></script>
+
+    <style> 
+
+    body,textarea,input
+    {
+      background-color: #111; 
+      color: #0f0; 
+      font-family: monospace; 
+    }
+
+    p
+    {
+      color: #0f0; 
+    }
+
+    a
+    {
+      color: #1f1; 
+
+    }
+
+
+    .topbar
+    {
+      background-color: #123; 
+      font-size:150%; 
+    }
+
+    .canvas
+    {
+      width: 100%;
+      height: 40%; 
+      background-color: #aab; 
+      margin: 5px; 
+
+    }
+
+
+    #opt
+    {
+      background-color: #246; 
+    }
+
+
+    </style>
+
   </head> 
 
-  <body> 
-    <p> monutor:</p> 
+  <body onLoad="monutor_load()"> 
+  <p class="topbar"> <b>monutor: </b> 
+      <a href="#hk" onClick="return show('hk')">hk</a> | 
+      <a href="#status" onClick="return show('status')">thresh/scal</a> | 
+      <a href="#headers" onClick="return show('header')">headers</a> | 
+      <a href="#events" onClick="return show('events')">events</a> | 
+
+    <noscript> 
+      <b>monutor uses rootjs so it requires javascript. Sorry. </b> 
+    </noscript> 
+    <div id="opt"></div> 
+    <div id="load"></div>
+    <div id="c" width="100%" height="100%"> (loading js..) </div> 
   </body> 
 
 </html> 
