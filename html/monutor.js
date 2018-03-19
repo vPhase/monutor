@@ -208,7 +208,6 @@ function doDraw(t, what,cut)
           var mg = JSROOT.CreateTMultiGraph.apply(0,graphs[ii]); 
           mg.fEditable = false; 
           mg.fTitle = titles[ii]; 
-          mg.fTimeDisplay = [ xtime[ii], ytime[ii] ]; 
           JSROOT.draw(canvases[ii],mg,"A" +pstyle[ii], function (painter) 
             {
               mg.fHistogram.fXaxis.fTitle=xtitles[ii]; 
@@ -268,13 +267,13 @@ function hk()
   optAppend("Stop Time: <input id='end_time' size=20> " ); 
   optAppend("Cut: <input id='cut' size=20 value='Entry$%10==0'> <br>");
   optAppend("Plot(<a onClick='return plotHelp()' href='#hk'>?</a>):<br>");
-  optAppend("<textarea id='plot_hk' cols=160 rows=3>hk.unixTime:hk.temp_master|||hk.unixTime:hk.temp_slave|||hk.unixTime:hk.temp_case;;;xtitle:time;title:Temperatures;ytitle:C;xtime:1;labels:master,slave,case\nhk.unixTime:hk.current_master|||hk.unixTime:hk.current_slave|||hk.unixTime:hk.current_frontend;;;xtitle:time;ytitle:mA;labels:master,slave,frontend;xtime:1;title:currents</textarea>");
+  optAppend("<textarea id='plot_hk' cols=160 rows=5>hk.unixTime:hk.temp_master|||hk.unixTime:hk.temp_slave|||hk.unixTime:hk.temp_case;;;xtitle:time;title:Temperatures;ytitle:C;xtime:1;labels:master,slave,case\nhk.unixTime:hk.current_master|||hk.unixTime:hk.current_slave|||hk.unixTime:hk.current_frontend;;;xtitle:time;ytitle:mA;labels:master,slave,frontend;xtime:1;title:currents\nhk.unixTime:hk.disk_space_kB;;;title:disk;xtitle:time;xtime:1;labels:disk;ytitle:kB</textarea>");
   optAppend("<br><input type='button' onClick='return hkTreeDraw()' value='Draw'>"); 
   optAppend("<a href='all_hk.root'>  (Download ROOT File)</a>"); 
   
   var now = Date.now(); 
 
-  document.getElementById('start_time').value = new Date(Date.now()- 72*3600*1000).toISOString(); 
+  document.getElementById('start_time').value = new Date(Date.now()- 7*24*3600*1000).toISOString(); 
   document.getElementById('end_time').value = new Date(Date.now()).toISOString(); 
 
   hkTreeDraw(); 
