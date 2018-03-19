@@ -1,3 +1,4 @@
 [submodule "jsroot"]
 	path = jsroot
 	url = https://github.com/cozzyd/jsroot
+  branch = dev
