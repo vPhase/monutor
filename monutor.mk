@@ -169,7 +169,7 @@ $(HTML_DIR)/jsroot: jsroot/scripts jsroot/style
 	mkdir -p $@
 	cp -r $^ $@
 
-deploy:  rootify $(HTML_DIR)/rootdata $(HTML_DIR)/index.html $(HTML_DIR)/monutor.js  $(HTML_DIR)/runlist.js $(HTML_DIR)/all_hk.root $(HTML_DIR)/jsroot  | $(HTML_DIR) 
+deploy:  rootify $(HTML_DIR)/rootdata $(HTML_DIR)/index.html $(HTML_DIR)/monutor.js  $(HTML_DIR)/runlist.js $(HTML_DIR)/all_hk.root $(HTML_DIR)/jsroot $(HTML_DIR)/monutor.ico  | $(HTML_DIR) 
 	touch $@ 
 
 
