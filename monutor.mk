@@ -149,7 +149,7 @@ rootify: extract rootify.d rootify-event rootify-status rootify-header rootify-h
 ##TODO 
 html/runlist.js: rootify
 	echo "var runs = [ " > $@ 
-	find $(ROOT_DIR) -type d -name run* -printf '  %f,\n' | sed 's/run//' >> $@ 
+	find $(ROOT_DIR) -type d -name run* -printf '  %f,\n' | sed 's/run//' | sort -n  >> $@ 
 	echo "];" >> $@
 
 $(HTML_DIR)/% : html/% 
@@ -170,6 +170,7 @@ $(HTML_DIR)/rootdata:  | $(HTML_DIR)
 $(HTML_DIR)/jsroot: jsroot/scripts jsroot/style
 	mkdir -p $@
 	cp -r $^ $@
+
 
 deploy:  rootify $(HTML_DIR)/rootdata $(HTML_DIR)/index.html $(HTML_DIR)/monutor.js  $(HTML_DIR)/runlist.js $(HTML_DIR)/all_hk.root $(HTML_DIR)/jsroot $(HTML_DIR)/monutor.ico  | $(HTML_DIR) 
 	touch $@ 
