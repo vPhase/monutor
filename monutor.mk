@@ -11,7 +11,7 @@
 ## Define what you need for your site in site.cfg
 
 
-.PHONY: all sync clean extract-status extract-header extract-hk extract-event rootify-event rootify-hk rootify-header rootify-status 
+.PHONY: all sync clean extract-status extract-header extract-hk extract-event rootify-event rootify-hk rootify-header rootify-status
 
 all: deploy 
 
@@ -35,7 +35,7 @@ sync: | $(LOCAL_DEST)
 
 
 ### These are responsible for generating the list of files to extract and rootify 
-### Synce sync is phony (and must be), these will infinitely loop (because they are included) 
+### Since sync is phony (and must be), these will infinitely loop (because they are included) 
 ### without MAKE_RESTARTS
 ifndef MAKE_RESTARTS 
 extract.d: sync | $(RAW_DIR) $(RAW_DIR)/hk
@@ -52,7 +52,9 @@ extract.d: sync | $(RAW_DIR) $(RAW_DIR)/hk
 	echo -n "extract-hk: " >> $@ 
 	find $(LOCAL_DEST)/$(HK_DIR) -type f -name *.flat.tar | sed 's/.flat.tar/.hkextracted \\/'>> $@
 	echo >> $@
+endif
 
+ifeq (1,${MAKE_RESTARTS}) 
 # This enumerates the necessary ROOT files 
 rootify.d: extract | $(ROOT_DIR) 
 	echo "# Automatically generated file. Dont' touch. " > $@
@@ -72,9 +74,9 @@ rootify.d: extract | $(ROOT_DIR)
 	find $(RAW_DIR)/hk -mindepth 3 -type d -printf '$(ROOT_DIR)/hk/%P.root ' >> $@
 	find $(RAW_DIR) -type f -name *.tar -printf '$(ROOT_DIR)/%P ' | sed 's/.tar/.root/g' >> $@
 	echo >> $@
-
-
 endif
+
+
 
 ## Directories
 $(LOCAL_DEST): 
