@@ -430,8 +430,10 @@ function go(i)
 {
   var P = pages['event']; 
    
-  clearCanvases(P); 
-  addCanvas(P,"canvas_short",false); 
+  if (P.canvases.length < 1) 
+  {
+    addCanvas(P,"canvas_short",false); 
+  }
 
 
   if (i < 0)
@@ -544,6 +546,7 @@ function go(i)
         var N = this.tgtobj['event.buffer_length']; 
 
         var X = []; 
+        var ii = 0; 
         for (var x = 0; x < N; x++) { X.push(x/1.5) }; 
 
         for (var b = 0; b < data.length; b++)
@@ -551,14 +554,25 @@ function go(i)
           for (var ch = 0; ch < data[b].length; ch++)
           {
             if (!arrNonZero(data[b][ch])) continue; 
-            var c = addCanvas(pages['event'],"canvas_small",false); 
+            var c =""; 
+
+            if (P.canvases.length < ii+2) 
+            {
+             c = addCanvas(pages['event'],"canvas_small",false) ;
+            }
+            else
+            { 
+              c = P.canvases[ii+1]; 
+              JSROOT.cleanup(c); 
+            }
 
             var g= JSROOT.CreateTGraph(N, X, data[b][ch]); 
             g.fTitle = " Evt" + ev + ", BD " + b + " , CH " + ch; 
             g.fLineColor = graph_colors[0]; 
             g.fMarkerColor = graph_colors[0]; 
-            pages['event'].graphs.push(g); 
+            P.graphs[ii]=g; 
             JSROOT.draw(c,g,"ALP"); 
+            ii++; 
           }
         }
       }; 
