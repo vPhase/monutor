@@ -1,5 +1,5 @@
 
-var graph_colors = [30, 46,33,40,39, 7,28,5,19,32,37,2,3,4,9,29,1,6,49,41,43,31]; 
+var graph_colors = [30,46,33,40,39, 7,28,5,19,32,37,2,3,4,9,29,1,6,49,41,43,31]; 
 
 
 function optClear()
@@ -571,8 +571,18 @@ function go(i)
             g.fTitle = " Evt" + ev + ", BD " + b + " , CH " + ch; 
             g.fLineColor = graph_colors[0]; 
             g.fMarkerColor = graph_colors[0]; 
+            g.fEditable = 0; 
+            g.InvertBit(JSROOT.BIT(18)); 
             P.graphs[ii]=g; 
-            JSROOT.draw(c,g,"ALP"); 
+            JSROOT.draw(c,g,"ALP;", function(painter)
+                {
+                  var hist = painter.GetObject().fHistogram; 
+                  hist.fXaxis.fTitle = "ns"; 
+                  hist.fYaxis.fTitle = "adu"; 
+                  painter.root_pad().fGridx = 1; 
+                  painter.root_pad().fGridy = 1; 
+                  JSROOT.redraw(painter.divid, hist, "gridx;gridy;"); 
+                }); 
             ii++; 
           }
         }
@@ -707,6 +717,8 @@ function monutor_load()
 
   JSROOT.gStyle.fTitleX=0.1; 
   JSROOT.gStyle.fFrameFillColor=12; 
+  JSROOT.gStyle.fGridColor=11; 
+
   pages['hk'] = Page('hk'); 
   pages['status'] = Page('status'); 
   pages['event'] = Page('event'); 
