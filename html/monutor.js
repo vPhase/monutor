@@ -268,9 +268,12 @@ function doDraw(page, ts, what,cut)
                 mg.fHistogram.fXaxis.fTimeDisplay=page.xtime[ii]; 
                 JSROOT.redraw(page.canvases[ii],mg,"A" +page.pstyle[ii], function (painter) 
                   {
-                    var leg = makeLegend(0.7,1,0.9,1,page.leg_graphs[ii]); 
-                    JSROOT.draw(page.canvases[ii],leg);
-                    page.legends.push(leg); 
+                    if (page.labels[ii].length)
+                    {
+                      var leg = makeLegend(0.7,1,0.9,1,page.leg_graphs[ii]); 
+                      JSROOT.draw(page.canvases[ii],leg);
+                      page.legends.push(leg); 
+                    }
                   }); 
               }
             ); 
