@@ -258,7 +258,7 @@ function doDraw(page, ts, what,cut)
           var jj = indices[1]; 
           var tt = indices[2]; 
 
-          g.fEditable = false; 
+          g.InvertBit(JSROOT.BIT(18)); 
           g.fTitle = page.labels[ii][jj]; 
           g.fName = page.labels[ii][jj]; 
           g.fLineColor = graph_colors[jj]; 
@@ -571,7 +571,6 @@ function go(i)
             g.fTitle = " Evt" + ev + ", BD " + b + " , CH " + ch; 
             g.fLineColor = graph_colors[0]; 
             g.fMarkerColor = graph_colors[0]; 
-            g.fEditable = 0; 
             g.InvertBit(JSROOT.BIT(18)); 
             P.graphs[ii]=g; 
             JSROOT.draw(c,g,"ALP;", function(painter)
