@@ -327,7 +327,7 @@ function statusTreeDraw()
 
   var status_trees = []; 
 
-  startLoading("Loading status files... be patient if you asked for a lot of runs"); 
+  startLoading("[Loading status files... be patient if you asked for a lot of runs]"); 
 
   var suffix = document.getElementById('status_full_transfers').checked ? "+" : ""; 
   var files_to_load = [];
@@ -381,7 +381,7 @@ function hkTreeDraw()
   var hktrees = []; 
 
   var suffix = document.getElementById('hk_full_transfers').checked ? "+" : ""; 
-  startLoading("Loading hk files"); 
+  startLoading("[Loading hk files]"); 
   var files_to_load = []; 
   for (var d = new Date(t0); d<= t2; d.setDate(d.getDate()+1)) 
   {
@@ -494,6 +494,7 @@ function go(i)
       {
         i = tree.fEntries-1; 
         document.getElementById('evt_entry').value = i; 
+        pause(); 
       }
 
 
@@ -548,6 +549,7 @@ function go(i)
       {
         i = tree.fEntries-1; 
         document.getElementById('evt_entry').value = i; 
+        pause(); 
       }
 
       var sel = new JSROOT.TSelector(); 
@@ -630,13 +632,39 @@ function next()
   go(i+1); 
 }
 
+var playing = false; 
+
+function pause()
+{
+
+  document.getElementById('play_button').disabled = false; 
+  document.getElementById('pause_button').disabled = true; 
+  playing = false; 
+}
+
+
+function start()
+{
+  document.getElementById('play_button').disabled = true; 
+  document.getElementById('pause_button').disabled = false; 
+  playing = true; 
+  next(); 
+  setTimeout(function() { if (playing) { start(); } } , document.getElementById('play_speed').value); 
+}
+
+
 function evt() 
 {
-  optAppend("<input type='button' value='<--' onClick='previous()'>"); 
   optAppend("Run: <input id='evt_run' size=20> "); 
   optAppend("Entry: <input id='evt_entry' value='0' size=20> "); 
   optAppend("<input type='button' value='Go' onClick='go(-1)'>"); 
-  optAppend("<input type='button' value='-->' onClick='next()'>"); 
+  optAppend(" )|( <input type='button' value='<==' onClick='go(0)' title='Go to first event'>"); 
+  optAppend("<input type='button' value=' <- ' onClick='previous()' title='Previous event'>"); 
+  optAppend("<input type='button' id='pause_button' value=' || '' onClick='pause()' disabled title='Pause playing'>"); 
+  optAppend("<input type='button' id='play_button' value=' [>'' onClick='start()' title='Play through events'>"); 
+  optAppend("<input type='button' value=' -> ' onClick='next()' title='Next event'>"); 
+  optAppend("<input type='button' value=' ==>' onClick='go(100000000)' title='Last event'>"); 
+  optAppend(" |  Play Interval: <input type='range' value='500' min='50' max='5000' id='play_speed' height='10px'>"); 
 
   var hash_params = hashParams('event'); 
   document.getElementById('evt_run').value = hash_params['run']===undefined ? runs[runs.length-1]: hash_params['run']; 
@@ -700,6 +728,8 @@ function stat()
 
 function show(what) 
 {
+  playing = false; 
+
   optClear(); 
 
   for (var key in pages)
@@ -710,6 +740,7 @@ function show(what)
 //  console.log("show('" + what + "')"); 
   if (what in pages)
     clearCanvases(pages[what]); 
+
 
   if (what == 'hk') 
   {
