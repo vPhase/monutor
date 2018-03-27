@@ -15,9 +15,10 @@ function optAppend(str)
 
 function plotHelp()
 {
-alert("Eventually this will document what to do!"); 
+alert("Plot Help:\nDifferent plots are separated by line returns. Different lines on same plot are separated by |||.\nAfter ;;;, you may add additional options\n\txtitle=string\n\tytitle=string\n\txtime=0|1\n\tytime=0|1\n\tlabels=label1,label2,label3,etc."); 
 
 }
+
 
 
 
