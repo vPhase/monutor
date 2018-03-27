@@ -358,6 +358,7 @@ function hkTreeDraw()
   if (cut != "") cut+= "&&"; 
   var t0 = new Date(document.getElementById('hk_start_time').value); 
   var t1 = new Date(document.getElementById('hk_end_time').value); 
+  var t2 = new Date(t1.getTime() + 24* 3600 * 1000); 
   cut += "(hk.unixTime>" + t0.getTime()/1000 + "&&hk.unixTime<" + t1.getTime()/1000 + ")"; 
 
   window.location.hash = "hk&t0=" + t0.getTime() + "&t1=" + t1.getTime(); 
@@ -368,7 +369,7 @@ function hkTreeDraw()
 
   startLoading("Loading hk files"); 
   var files_to_load = []; 
-  for (var d = new Date(t0); d<= t1; d.setDate(d.getDate()+1)) 
+  for (var d = new Date(t0); d<= t2; d.setDate(d.getDate()+1)) 
   {
     var mon = d.getUTCMonth()+1; 
     var day = d.getUTCDate(); 
@@ -419,7 +420,7 @@ function hk()
   var hash_params = hashParams('hk'); 
 
   document.getElementById('hk_start_time').value = new Date( hash_params['t0'] === undefined ? Date.now()- 7*24*3600*1000 : parseInt(hash_params['t0'])).toISOString(); 
-  document.getElementById('hk_end_time').value = new Date(hash_params['t1'] === undefined ? Date.now() : parseInt(hash_params['t1'])).toISOString(); 
+  document.getElementById('hk_end_time').value = new Date(hash_params['t1'] === undefined ? Date.now() + 24*3600*1000 : parseInt(hash_params['t1'])).toISOString(); 
 
   hkTreeDraw(); 
 
