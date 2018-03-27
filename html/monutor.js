@@ -12,6 +12,26 @@ function optAppend(str)
   document.getElementById('opt').innerHTML += str; 
 }
 
+function hashParams(what) 
+{
+
+  var pars = {}; 
+  var hash = window.location.hash.split("&"); 
+
+  if (hash[0].substring(1) != what) return pars; 
+  
+  for (var i = 0; i < hash.length; i++)
+  {
+    var idx =hash[i].indexOf("="); 
+    if (idx > 0) 
+    {
+      pars[hash[i].substr(0,idx)]=hash[i].substr(idx+1); 
+    }
+  }
+
+  return pars; 
+}
+
 
 function plotHelp()
 {
@@ -20,16 +40,18 @@ alert("Plot Help:\nDifferent plots are separated by line returns. Different line
 }
 
 
-
-
-
-function lastModified(file) 
+function arrNonZero(arr) 
 {
-  var req = new XMLHttpRequest(); 
-  req.open("HEAD", file, false); 
-  req.send(null); 
-  return new Date(req.getResponseHeader("Last-Modified")).getTime(); 
+  for (var i = 0; i < arr.length; i++)
+  {
+    if (arr[i]) return true; 
+  }
+
+  return false; 
 }
+
+
+
 
 var pages = {}; 
 
@@ -38,7 +60,7 @@ function Page(name)
   console.log("Made new page " + name); 
   P = new Object; 
   P.main_canvas = name+"c"; 
-  document.body.innerHTML += '<div id="'+P.main_canvas+'" style="display: none" width="100%" height=100%"> (loading js...)'+name+' </div>'; 
+  document.getElementById('main').innerHTML += '<div id="'+P.main_canvas+'" style="display: none" width="100%" height=100%"> (loading js...)'+name+' </div>'; 
   P.page_name = name; 
   P.canvases = []; 
   P.graphs = [];  
@@ -83,12 +105,13 @@ function clearCanvases(p)
   c.innerHTML = ""; 
 }
 
-function addCanvas(P) 
+function addCanvas(P,cl='canvas',show_name = true) 
 {
   var i = P.canvases.length+1; 
   var name = P.page_name+"_c" + i; 
   var c = document.getElementById(P.main_canvas); 
-  c.innerHTML += '<div class="canvas" id="' +name+ '">'+name+'</div>'; 
+  var show = show_name ? name : ''; 
+  c.innerHTML += '<div class="'+cl+'" id="' + name + '">'+show+'</div>'; 
   P.canvases.push(name); 
   return name; 
 }
@@ -253,19 +276,20 @@ function doDraw(page, ts, what,cut)
             mg.fTitle = page.titles[ii]; 
             JSROOT.draw(page.canvases[ii],mg,"A" +page.pstyle[ii], function (painter) 
               {
-                mg.fHistogram.fXaxis.fTitle=page.xtitles[ii]; 
-                mg.fHistogram.fYaxis.fTitle=page.ytitles[ii]; 
+                var hist = painter.firstpainter.GetHisto(); 
+                hist.fXaxis.fTitle=page.xtitles[ii]; 
+                hist.fYaxis.fTitle=page.ytitles[ii]; 
                 if (page.xtime[ii])
                 {
-                  mg.fHistogram.fXaxis.fTitle += " (start = " + new Date(mg.fHistogram.fXaxis.fXmin*1000.).toUTCString() + ")"; 
+                  hist.fXaxis.fTitle += " (start = " + new Date(mg.fHistogram.fXaxis.fXmin*1000.).toUTCString() + ")"; 
                 }
                 if (page.ytime[ii])
                 {
-                  mg.fHistogram.fYaxis.fTitle += " (start = " + new Date(mg.fHistogram.fYaxis.fXmin*1000.).toUTCString() + ")"; 
+                  hist.fYaxis.fTitle += " (start = " + new Date(mg.fHistogram.fYaxis.fXmin*1000.).toUTCString() + ")"; 
                 }
  
-                mg.fHistogram.fYaxis.fTimeDisplay=page.ytime[ii]; 
-                mg.fHistogram.fXaxis.fTimeDisplay=page.xtime[ii]; 
+                hist.fYaxis.fTimeDisplay=page.ytime[ii]; 
+                hist.fXaxis.fTimeDisplay=page.xtime[ii]; 
                 JSROOT.redraw(page.canvases[ii],mg,"A" +page.pstyle[ii], function (painter) 
                   {
                     if (page.labels[ii].length)
@@ -292,6 +316,7 @@ function statusTreeDraw()
   var run0 = parseInt(document.getElementById('status_start_run').value); 
   var run1 = parseInt(document.getElementById('status_end_run').value); 
 
+  window.location.hash = "status&run0=" + run0 + "&run1=" + run1; 
 
   var status_trees = []; 
   startLoading("Loading status files... be patient if you asked for a lot of runs"); 
@@ -334,6 +359,8 @@ function hkTreeDraw()
   var t0 = new Date(document.getElementById('hk_start_time').value); 
   var t1 = new Date(document.getElementById('hk_end_time').value); 
   cut += "(hk.unixTime>" + t0.getTime()/1000 + "&&hk.unixTime<" + t1.getTime()/1000 + ")"; 
+
+  window.location.hash = "hk&t0=" + t0.getTime() + "&t1=" + t1.getTime(); 
 
   //figure out what days we need 
 
@@ -382,75 +409,208 @@ function hk()
   optAppend("Start Time: <input id='hk_start_time' size=30> ");
   optAppend("Stop Time: <input id='hk_end_time' size=30> " ); 
   optAppend("Cut: <input id='hk_cut' size=20 value='Entry$%10==0'> <br>");
-  optAppend("Plot(<a onClick='return plotHelp()' href='#hk'>?</a>):<br>");
+  optAppend("Plot(<a onClick='return plotHelp()'>?</a>):<br>");
   optAppend("<textarea id='plot_hk' cols=160 rows=5>hk.unixTime:hk.temp_master|||hk.unixTime:hk.temp_slave|||hk.unixTime:hk.temp_case;;;xtitle:time;title:Temperatures;ytitle:C;xtime:1;labels:master,slave,case\nhk.unixTime:hk.current_master|||hk.unixTime:hk.current_slave|||hk.unixTime:hk.current_frontend;;;xtitle:time;ytitle:mA;labels:master,slave,frontend;xtime:1;title:currents\nhk.unixTime:hk.disk_space_kB;;;title:disk;xtitle:time;xtime:1;labels:disk;ytitle:kB</textarea>");
   optAppend("<br><input type='button' onClick='return hkTreeDraw()' value='Draw'>"); 
   optAppend("<a href='all_hk.root'>  (Download All HK ROOT File)</a>"); 
   
   var now = Date.now(); 
 
-  document.getElementById('hk_start_time').value = new Date(Date.now()- 7*24*3600*1000).toISOString(); 
-  document.getElementById('hk_end_time').value = new Date(Date.now()).toISOString(); 
+  var hash_params = hashParams('hk'); 
+
+  document.getElementById('hk_start_time').value = new Date( hash_params['t0'] === undefined ? Date.now()- 7*24*3600*1000 : parseInt(hash_params['t0'])).toISOString(); 
+  document.getElementById('hk_end_time').value = new Date(hash_params['t1'] === undefined ? Date.now() : parseInt(hash_params['t1'])).toISOString(); 
 
   hkTreeDraw(); 
 
 } 
 
 
-function header()
+function go(i) 
 {
+  var P = pages['event']; 
+   
+  clearCanvases(P); 
+  addCanvas(P,"canvas_short",false); 
 
-  optAppend("Start Run: <input id='header_start_run' size=10> ");
-  optAppend("Stop Run: <input id='header_end_run' size=10> " ); 
-  optAppend("Cut: <input id='header_cut' size=20 value='Entry$%10==0'> <br>");
-  optAppend("Plot(<a onClick='return plotHelp()' href='#status'>?</a>):<br>");
 
-  var global_scalers= "status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[0]/10";
-  global_scalers += "|||status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[1]/10";
-  global_scalers += "|||status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[2]";
-  global_scalers += ";;;xtitle:time;title:Global Scalers;ytitle:Hz;xtime:1;labels:Slow,Slow Gated,Fast"
-
-  var beam_scalers = ""; 
-  for (var i = 0; i <15; i++)
+  if (i < 0)
   {
-    if (i > 0) beam_scalers+="|||"; 
-    beam_scalers+="status.readout_time+status.readout_time_ns*1e-9:status.beam_scalers[0]["+i+"]/10."; 
+    i = parseInt(document.getElementById('evt_entry').value); 
   }
-  beam_scalers+=";;;xtitle:time;title:Beam Scalers;ytitle:Hz;xtime:1;labels:"; 
-  for (var i = 0; i <15; i++)
+  else
   {
-    if (i > 0) beam_scalers+=","; 
-    beam_scalers+="Beam "+i; 
+    document.getElementById('evt_entry').value = i; 
   }
 
-  var beam_thresholds = ""; 
-  for (var i = 0; i <15; i++)
+  var run = parseInt(document.getElementById('evt_run').value); 
+
+  if (runs.indexOf(run) < 0) 
   {
-    if (i > 0) beam_thresholds+="|||"; 
-    beam_thresholds+="status.readout_time+status.readout_time_ns*1e-9:status.trigger_thresholds["+i+"]/10."; 
-  }
-  beam_thresholds+=";;;xtitle:time;title:Trigger thresholds;ytitle:Power Sum(arb);xtime:1;labels:"; 
-  for (var i = 0; i <15; i++)
-  {
-    if (i > 0) beam_thresholds+=","; 
-    beam_thresholds+="Beam "+i; 
+    alert("No run " + run); 
+    return; 
   }
 
-  optAppend("<textarea id='plot_status' cols=160 rows=5>"+global_scalers+"\n"+beam_scalers+"\n"+beam_thresholds+"</textarea>");
-  optAppend("<br><input type='button' onClick='return statusTreeDraw()' value='Draw'>"); 
+  window.location.hash = "event&run=" + run + "&entry=" + i; 
 
-  document.getElementById('status_start_run').value =  runs[Math.max(0,runs.length-5)]; 
-  document.getElementById('status_end_run').value =  runs[runs.length-1]; 
+  var event_file = "rootdata/run" + run + "/event.root"; 
+  document.getElementById('load').innerHTML = '<a href="'+event_file+'">Event File</a>'
+  var head_file = "rootdata/run" + run + "/header.filtered.root"; 
+  document.getElementById('load').innerHTML += ' | <a href="'+head_file+'">Filtered Head File</a>'
+  var full_head_file = "rootdata/run" + run + "/header.root"; 
+  document.getElementById('load').innerHTML += ' | <a href="'+full_head_file+'">Full Head File</a>'
 
-  statusTreeDraw(); 
+  JSROOT.OpenFile(head_file, function(file) 
+  {
+    if (file == null) 
+    { 
+      alert("Could not open filtered file!"); 
+      return; 
+    }
+
+    file.ReadObject("header", function(tree) 
+    {
+      if (tree.fEntries <= i) 
+      {
+        i = tree.fEntries-1; 
+        document.getElementById('evt_entry').value = i; 
+      }
+
+
+      var sel = new JSROOT.TSelector(); 
+
+      var header_vars = ["event_number","trig_number","buffer_length","pretrigger_samples","readout_time", "readout_time_ns", "trig_time","raw_approx_trigger_time","raw_approx_trigger_time_nsecs","triggered_beams","beam_power","buffer_number","gate_flag","trigger_type","sync_problem"]; 
+      for (var b = 0; b < header_vars.length; b++) 
+      {
+        sel.AddBranch("header."+header_vars[b]);     
+      }
+      
+
+      sel.Begin = function ()
+      {
+      }
+
+      sel.Process = function ()
+      { 
+        var hdrc = document.getElementById(pages['event'].canvases[0]); 
+
+        var str = ""; 
+        //todo, format nicer 
+        str += "<table>"; 
+        for (var b = 0; b < header_vars.length; b++) 
+        {
+          if ( b % 3 == 0) str += "<tr>"; 
+          str += "<td>"+ header_vars[b] + ": </td> <td> " + this.tgtobj["header."+header_vars[b]] + "</td>"; 
+          if ( b % 3 == 2) str += "</tr>"; 
+        }
+        str += "</table>"; 
+        hdrc.innerHTML = str; 
+      }; 
+
+      sel.Terminate = function(res) { ; } 
+
+      var args = { numentries: 1, firstentry : i} ;
+      tree.Process(sel, args); 
+    }); 
+  }); 
+
+  JSROOT.OpenFile(event_file, function(file)  
+  {
+    if (file == null) 
+    { 
+      alert("Could not open event file!"); 
+      return; 
+    }
+
+    file.ReadObject("event", function(tree) 
+    {
+      if (tree.fEntries <= i) 
+      {
+        i = tree.fEntries-1; 
+        document.getElementById('evt_entry').value = i; 
+      }
+
+      var sel = new JSROOT.TSelector(); 
+
+      sel.AddBranch("event.event_number"); 
+      sel.AddBranch("event.raw_data"); 
+      sel.AddBranch("event.buffer_length"); 
+
+      sel.Begin = function (){ }  ; 
+      sel.Process = function ()
+      { 
+        var data = this.tgtobj['event.raw_data']; 
+        var ev = this.tgtobj['event.event_number']; 
+        var N = this.tgtobj['event.buffer_length']; 
+
+        var X = []; 
+        for (var x = 0; x < N; x++) { X.push(x/1.5) }; 
+
+        for (var b = 0; b < data.length; b++)
+        {
+          for (var ch = 0; ch < data[b].length; ch++)
+          {
+            if (!arrNonZero(data[b][ch])) continue; 
+            var c = addCanvas(pages['event'],"canvas_small",false); 
+
+            var g= JSROOT.CreateTGraph(N, X, data[b][ch]); 
+            g.fTitle = " Evt" + ev + ", BD " + b + " , CH " + ch; 
+            g.fLineColor = graph_colors[0]; 
+            g.fMarkerColor = graph_colors[0]; 
+            pages['event'].graphs.push(g); 
+            JSROOT.draw(c,g,"ALP"); 
+          }
+        }
+      }; 
+
+      sel.Terminate = function(res) { ; } 
+      var args = { numentries: 1, firstentry : i} ;
+      tree.Process(sel, args); 
+    }); 
+
+  }); 
+
+
+
+
+
 }
+
+function previous() 
+{
+  var i =parseInt(document.getElementById('evt_entry').value); 
+  if (i > 0) i--; 
+  go(i); 
+}
+
+function next() 
+{
+  var i =parseInt(document.getElementById('evt_entry').value); 
+  go(i+1); 
+}
+
+function evt() 
+{
+  optAppend("<input type='button' value='<--' onClick='previous()'>"); 
+  optAppend("Run: <input id='evt_run' size=20> "); 
+  optAppend("Entry: <input id='evt_entry' value='0' size=20> "); 
+  optAppend("<input type='button' value='Go' onClick='go(-1)'>"); 
+  optAppend("<input type='button' value='-->' onClick='next()'>"); 
+
+  var hash_params = hashParams('event'); 
+  document.getElementById('evt_run').value = hash_params['run']===undefined ? runs[runs.length-1]: hash_params['run']; 
+  document.getElementById('evt_entry').value = hash_params['entry']===undefined ? '0' : hash_params['entry']; 
+  go(-1); 
+}
+
+
 function stat()
 {
 
   optAppend("Start Run: <input id='status_start_run' size=10> ");
   optAppend("Stop Run: <input id='status_end_run' size=10> " ); 
   optAppend("Cut: <input id='status_cut' size=20 value='Entry$%10==0'> <br>");
-  optAppend("Plot(<a onClick='return plotHelp()' href='#status'>?</a>):<br>");
+  optAppend("Plot(<a onClick='return plotHelp()' >?</a>):<br>");
 
   var global_scalers= "status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[0]/10";
   global_scalers += "|||status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[1]/10";
@@ -486,8 +646,9 @@ function stat()
   optAppend("<textarea id='plot_status' cols=160 rows=5>"+global_scalers+"\n"+beam_scalers+"\n"+beam_thresholds+"</textarea>");
   optAppend("<br><input type='button' onClick='return statusTreeDraw()' value='Draw'>"); 
 
-  document.getElementById('status_start_run').value =  runs[Math.max(0,runs.length-5)]; 
-  document.getElementById('status_end_run').value =  runs[runs.length-1]; 
+  var hash_params = hashParams('status'); 
+  document.getElementById('status_start_run').value =  hash_params['run0'] === undefined ? runs[Math.max(0,runs.length-5)] : parseInt(hash_params['run0']); 
+  document.getElementById('status_end_run').value =  hash_params['run1'] === undefined ? runs[runs.length-1] : parseInt(hash_params['run1']); 
 
   statusTreeDraw(); 
 }
@@ -495,7 +656,6 @@ function stat()
 
 function show(what) 
 {
-  window.location.hash = what; 
   optClear(); 
 
   for (var key in pages)
@@ -515,6 +675,10 @@ function show(what)
   {
     stat(); 
   }
+  else if (what == 'event') 
+  {
+    evt(); 
+  }
   else
   {
     optAppend("Not implemented yet");  
@@ -531,15 +695,16 @@ function monutor_load()
   pages['status'] = Page('status'); 
   pages['event'] = Page('event'); 
 
+  document.getElementById('last_updated').innerHTML = last_updated; 
+
   var hash = window.location.hash; 
-  window.location.hash = ''; 
   if (hash == '')
   {
     show('hk'); 
   }
   else 
   {
-    show(hash.substring(1)); 
+    show(hash.substring(1).split('&')[0]); 
   }
 }
 

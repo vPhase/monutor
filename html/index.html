@@ -20,6 +20,14 @@
       font-family: monospace; 
     }
 
+    table
+    {
+      background-color: #111; 
+      width: 100%; 
+      border: 1px solid blue; 
+
+    } 
+
     p
     {
       color: #0f0; 
@@ -30,8 +38,6 @@
       color: #1f1; 
 
     }
-
-
     .topbar
     {
       background-color: #123; 
@@ -46,11 +52,35 @@
       margin: 5px; 
 
     }
+    .canvas_short
+    {
+      width: 100%;
+      background-color: #222; 
+      margin: 5px; 
+      overflow: auto; 
+    }
+
+
+    .canvas_small
+    {
+      width: 25%;
+      height: 25%; 
+      float: left; 
+      background-color: #aab; 
+    }
+
 
 
     #opt
     {
       background-color: #246; 
+    }
+
+    .eventc
+    {
+      display: table; 
+
+
     }
 
 
@@ -63,13 +93,16 @@
       <a href="#hk" onClick="return show('hk')">hk</a> | 
       <a href="#status" onClick="return show('status')">thresh/scal</a> | 
       <a href="#event" onClick="return show('event')">events</a> | 
-      <a href="https://github.com/vPhase/monutor">source</a> 
+      <small>Last updated <span id="last_updated"></span>. <small><a href="https://github.com/vPhase/monutor">[source code]</a></small> </small>
+   </p>
+
 
     <noscript> 
       <b>monutor uses rootjs so it requires javascript. Sorry. </b> 
     </noscript> 
     <div id="opt"></div> 
     <div id="load"></div>
+    <div id="main"></div> 
 
   </body> 
 

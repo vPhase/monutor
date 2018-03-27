@@ -69,6 +69,8 @@ rootify.d: extract | $(ROOT_DIR)
 	echo -n "rootify-header: " >> $@
 	find $(RAW_DIR) -type d  -name header -printf '$(ROOT_DIR)/%P.root ' >> $@
 	find $(RAW_DIR) -type f -name header.tar -printf '$(ROOT_DIR)/%P ' | sed 's/.tar/.root/g' >> $@
+	find $(RAW_DIR) -type d  -name header -printf '$(ROOT_DIR)/%P.filtered.root ' >> $@
+	find $(RAW_DIR) -type f -name header.tar -printf '$(ROOT_DIR)/%P ' | sed 's/.tar/.filtered.root/g' >> $@
 	echo >> $@
 	echo -n "rootify-hk: " >> $@ 
 	find $(RAW_DIR)/hk -mindepth 3 -type d -printf '$(ROOT_DIR)/hk/%P.root ' >> $@
@@ -142,6 +144,9 @@ $(ROOT_DIR)/hk/%.root: $(RAW_DIR)/hk/%.tar
 	touch new_hk; 
 
 
+$(ROOT_DIR)/%/header.filtered.root: $(ROOT_DIR)/%/event.root $(ROOT_DIR)/%/header.root 
+	nuphaseroot-convert filtered_header $^ $@ 
+
 rootify: extract rootify.d rootify-event rootify-status rootify-header rootify-hk 
 	touch $@ 
 
@@ -151,6 +156,7 @@ html/runlist.js: rootify
 	echo "var runs = [ " > $@ 
 	find $(ROOT_DIR) -type d -name run* -printf '  %f,\n' | sed 's/run//' | sort -n  >> $@ 
 	echo "];" >> $@
+	echo "var last_updated = \"`date -u`\";" >> $@ 
 
 $(HTML_DIR)/% : html/% 
 	cp  $< $@
