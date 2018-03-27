@@ -281,16 +281,16 @@ function doDraw(page, ts, what,cut)
                 hist.fYaxis.fTitle=page.ytitles[ii]; 
                 if (page.xtime[ii])
                 {
-                  hist.fXaxis.fTitle += " (start = " + new Date(mg.fHistogram.fXaxis.fXmin*1000.).toUTCString() + ")"; 
+                  hist.fXaxis.fTitle += " (start = " + new Date(hist.fXaxis.fXmin*1000.).toUTCString() + ")"; 
                 }
                 if (page.ytime[ii])
                 {
-                  hist.fYaxis.fTitle += " (start = " + new Date(mg.fHistogram.fYaxis.fXmin*1000.).toUTCString() + ")"; 
+                  hist.fYaxis.fTitle += " (start = " + new Date(hist.fYaxis.fXmin*1000.).toUTCString() + ")"; 
                 }
  
                 hist.fYaxis.fTimeDisplay=page.ytime[ii]; 
                 hist.fXaxis.fTimeDisplay=page.xtime[ii]; 
-                JSROOT.redraw(page.canvases[ii],mg,"A" +page.pstyle[ii], function (painter) 
+                JSROOT.redraw(page.canvases[ii],hist,"", function (painter) 
                   {
                     if (page.labels[ii].length)
                     {
@@ -666,6 +666,7 @@ function stat()
 
   statusTreeDraw(); 
 }
+
 
 
 function show(what) 
