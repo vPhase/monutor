@@ -1,5 +1,5 @@
 
-var graph_colors = [40,46,30,6,,2,4,7,9,1,25,12,17,33,42,49,41,28,20]; 
+var graph_colors = [30, 46, 7,28,5,19,32,37,2,3,4,9,29,1,6,49,41,43,31]; 
 
 
 function optClear()
@@ -114,7 +114,7 @@ function makeLegend(xlow,xhigh,ylow,yhigh, objs)
       leg.fY1NDC = ylow;
       leg.fY2NDC = yhigh; 
       leg.fFillStyle=1001; 
-      leg.fFillColor=36; 
+      leg.fFillColor=14; 
       leg.fNColumns = objs.length > 12 ? 4 : objs.length > 8 ? 3 : objs.length > 3 ? 2 : 1; 
  
       for (var i = 0; i < objs.length; i++) 
@@ -136,6 +136,16 @@ function doDraw(page, ts, what,cut)
 
   clearCanvases(page); 
   var plots = document.getElementById(what).value.split("\n"); 
+
+  //clear out any null trees 
+  var real_ts = []; 
+  for (var it = 0; it < ts.length; it++)
+  {
+    if (ts[it] != null) real_ts.push(ts[it]); 
+
+  }
+
+
   for (var i = 0; i < plots.length; i++) 
   {
     //see if we have titles and time displays
@@ -206,20 +216,19 @@ function doDraw(page, ts, what,cut)
     page.graphs.push([]); 
     page.leg_graphs.push([]); 
     addCanvas(page); 
-    page.wants.push(draws.length*ts.length); 
+    var howmanytrees = 0; 
+    var min_tt = ts.length -1; 
+
+    page.wants.push(draws.length*real_ts.length); 
+
     for (var j = 0; j < draws.length; j++) 
     {
-      for (var it = 0; it < ts.length; it++)
+      for (var it = 0; it < real_ts.length; it++)
       {
 
-        if (ts[it] == null)
-        {
-          page.wants[i] -= draws.length; 
-          continue; 
-        }
         args = { expr: draws[j], cut: cut, graph: true, drawopt: [i,j,it]}; 
 //        console.log(args); 
-        ts[it].Draw(args, function(g,indices,ignore)
+        real_ts[it].Draw(args, function(g,indices,ignore)
         {
           var ii = indices[0]; 
           var jj = indices[1]; 
@@ -245,6 +254,15 @@ function doDraw(page, ts, what,cut)
               {
                 mg.fHistogram.fXaxis.fTitle=page.xtitles[ii]; 
                 mg.fHistogram.fYaxis.fTitle=page.ytitles[ii]; 
+                if (page.xtime[ii])
+                {
+                  mg.fHistogram.fXaxis.fTitle += " (start = " + new Date(mg.fHistogram.fXaxis.fXmin*1000.).toUTCString() + ")"; 
+                }
+                if (page.ytime[ii])
+                {
+                  mg.fHistogram.fYaxis.fTitle += " (start = " + new Date(mg.fHistogram.fYaxis.fXmin*1000.).toUTCString() + ")"; 
+                }
+ 
                 mg.fHistogram.fYaxis.fTimeDisplay=page.ytime[ii]; 
                 mg.fHistogram.fXaxis.fTimeDisplay=page.xtime[ii]; 
                 JSROOT.redraw(page.canvases[ii],mg,"A" +page.pstyle[ii], function (painter) 
@@ -504,7 +522,7 @@ function monutor_load()
 {
 
   JSROOT.gStyle.fTitleX=0.1; 
-  JSROOT.gStyle.fFrameFillColor=37; 
+  JSROOT.gStyle.fFrameFillColor=12; 
   pages['hk'] = Page('hk'); 
   pages['status'] = Page('status'); 
   pages['event'] = Page('event'); 
