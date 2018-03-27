@@ -35,10 +35,13 @@ function hashParams(what)
 
 function plotHelp()
 {
-alert("Plot Help:\nDifferent plots are separated by line returns. Different lines on same plot are separated by |||.\nAfter ;;;, you may add additional options\n\txtitle=string\n\tytitle=string\n\txtime=0|1\n\tytime=0|1\n\tlabels=label1,label2,label3,etc."); 
-
+  alert("Plot Help:\nDifferent plots are separated by line returns. Different lines on same plot are separated by |||.\nAfter ;;;, you may add additional options\n\txtitle=string\n\tytitle=string\n\txtime=0|1\n\tytime=0|1\n\tlabels=label1,label2,label3,etc."); 
 }
 
+function transferHelp()
+{
+  alert("If checked (default), will fully download all ROOT files before making plots. Otherwise, will use partial transfers, which might be faster, but I think results in additional bandwidth and might defeat browser cache... maybe."); 
+}
 
 function arrNonZero(arr) 
 {
@@ -119,6 +122,10 @@ function addCanvas(P,cl='canvas',show_name = true)
 function startLoading(str = "Loading...") 
 {
   document.getElementById("load").innerHTML = str; 
+}
+function appendLoading(str) 
+{
+  document.getElementById("load").innerHTML += str; 
 }
 
 function stopLoading() 
@@ -319,13 +326,17 @@ function statusTreeDraw()
   window.location.hash = "status&run0=" + run0 + "&run1=" + run1; 
 
   var status_trees = []; 
+
   startLoading("Loading status files... be patient if you asked for a lot of runs"); 
 
+  var suffix = document.getElementById('status_full_transfers').checked ? "+" : ""; 
   var files_to_load = [];
+
   for (var r = run0; r <= run1; r++)
   {
-    files_to_load.push("rootdata/run"+r+"/status.root"); 
+    files_to_load.push("rootdata/run"+r+"/status.root"+suffix); 
   }
+
   console.log(files_to_load); 
 
   for (var i = 0; i < files_to_load.length; i++)
@@ -337,10 +348,12 @@ function statusTreeDraw()
          status_trees.push(null); 
          return; 
        }
+       appendLoading("="); 
 
        file.ReadObject("status;1", function(tree) 
        {
           status_trees.push(tree); 
+          appendLoading("+"); 
           if (status_trees.length == files_to_load.length) 
           {
              stopLoading(); 
@@ -367,15 +380,16 @@ function hkTreeDraw()
 
   var hktrees = []; 
 
+  var suffix = document.getElementById('hk_full_transfers').checked ? "+" : ""; 
   startLoading("Loading hk files"); 
   var files_to_load = []; 
   for (var d = new Date(t0); d<= t2; d.setDate(d.getDate()+1)) 
   {
     var mon = d.getUTCMonth()+1; 
     var day = d.getUTCDate(); 
-    if (mon < 9) mon = "0" + mon; 
-    if (day < 9) day = "0" + day; 
-    files_to_load.push("rootdata/hk/" + d.getUTCFullYear()  + "/" + mon + "/" + day+ ".root"); 
+    if (mon < 10) mon = "0" + mon; 
+    if (day < 10) day = "0" + day; 
+    files_to_load.push("rootdata/hk/" + d.getUTCFullYear()  + "/" + mon + "/" + day+ ".root"+suffix); 
   }
   console.log(files_to_load); 
 
@@ -384,6 +398,7 @@ function hkTreeDraw()
 
     JSROOT.OpenFile(files_to_load[i], function(file)
     { 
+       appendLoading("="); 
        if (file == null)
        { 
          hktrees.push(null); 
@@ -391,6 +406,7 @@ function hkTreeDraw()
        }
        file.ReadObject("hk;1", function(tree) 
        {
+       appendLoading("+"); 
           hktrees.push(tree); 
           if (hktrees.length == files_to_load.length) 
           {
@@ -409,7 +425,8 @@ function hk()
 
   optAppend("Start Time: <input id='hk_start_time' size=30> ");
   optAppend("Stop Time: <input id='hk_end_time' size=30> " ); 
-  optAppend("Cut: <input id='hk_cut' size=20 value='Entry$%10==0'> <br>");
+  optAppend("Cut: <input id='hk_cut' size=20 value='Entry$%10==0'>");
+  optAppend(" | Full xfers(<a href='javascript:transferHelp()'>?</a>) : <input type=checkbox id='hk_full_transfers' checked> <br>" ); 
   optAppend("Plot(<a onClick='return plotHelp()'>?</a>):<br>");
   optAppend("<textarea id='plot_hk' cols=160 rows=5>hk.unixTime:hk.temp_master|||hk.unixTime:hk.temp_slave|||hk.unixTime:hk.temp_case;;;xtitle:time;title:Temperatures;ytitle:C;xtime:1;labels:master,slave,case\nhk.unixTime:hk.current_master|||hk.unixTime:hk.current_slave|||hk.unixTime:hk.current_frontend;;;xtitle:time;ytitle:mA;labels:master,slave,frontend;xtime:1;title:currents\nhk.unixTime:hk.disk_space_kB;;;title:disk;xtitle:time;xtime:1;labels:disk;ytitle:kB</textarea>");
   optAppend("<br><input type='button' onClick='return hkTreeDraw()' value='Draw'>"); 
@@ -628,13 +645,15 @@ function evt()
 }
 
 
+
 function stat()
 {
 
   optAppend("Start Run: <input id='status_start_run' size=10> ");
   optAppend("Stop Run: <input id='status_end_run' size=10> " ); 
-  optAppend("Cut: <input id='status_cut' size=20 value='Entry$%10==0'> <br>");
-  optAppend("Plot(<a onClick='return plotHelp()' >?</a>):<br>");
+  optAppend("Cut: <input id='status_cut' size=20 value='Entry$%10==0'>");
+  optAppend(" | Full xfers(<a href='javascript:transferHelp()'>?</a>) : <input type=checkbox id='status_full_transfers' checked> <br>"); 
+  optAppend("Plot(<a href='javascript:plotHelp()'><u>?</u></a>):<br>");
 
   var global_scalers= "status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[0]/10";
   global_scalers += "|||status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[1]/10";
