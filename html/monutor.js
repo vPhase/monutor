@@ -173,7 +173,6 @@ function doDraw(page, ts, what,cut)
   for (var it = 0; it < ts.length; it++)
   {
     if (ts[it] != null) real_ts.push(ts[it]); 
-
   }
 
 
@@ -343,12 +342,19 @@ function statusTreeDraw()
   {
     JSROOT.OpenFile(files_to_load[i], function(file)
     {  
+       appendLoading("="); 
        if (file == null)
        { 
          status_trees.push(null); 
+         appendLoading("+"); 
+         if (status_trees.length == files_to_load.length) 
+         {
+            stopLoading(); 
+            doDraw(pages['status'],status_trees,'plot_status',cut); 
+         }
+ 
          return; 
        }
-       appendLoading("="); 
 
        file.ReadObject("status;1", function(tree) 
        {
@@ -402,6 +408,13 @@ function hkTreeDraw()
        if (file == null)
        { 
          hktrees.push(null); 
+         appendLoading("+"); 
+         if (hktrees.length == files_to_load.length) 
+         {
+             stopLoading(); 
+             doDraw(pages['hk'],hktrees,'plot_hk',cut); 
+         }
+
          return; 
        }
        file.ReadObject("hk;1", function(tree) 
@@ -437,7 +450,7 @@ function hk()
   var hash_params = hashParams('hk'); 
 
   document.getElementById('hk_start_time').value = new Date( hash_params['t0'] === undefined ? Date.now()- 7*24*3600*1000 : parseInt(hash_params['t0'])).toISOString(); 
-  document.getElementById('hk_end_time').value = new Date(hash_params['t1'] === undefined ? Date.now() + 24*3600*1000 : parseInt(hash_params['t1'])).toISOString(); 
+  document.getElementById('hk_end_time').value = new Date(hash_params['t1'] === undefined ? Date.now() : parseInt(hash_params['t1'])).toISOString(); 
 
   hkTreeDraw(); 
 
