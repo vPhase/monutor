@@ -767,7 +767,7 @@ function stat()
   for (var i = 0; i <15; i++)
   {
     if (i > 0) beam_thresholds+="|||"; 
-    beam_thresholds+="status.readout_time+status.readout_time_ns*1e-9:status.trigger_thresholds["+i+"]/10."; 
+    beam_thresholds+="status.readout_time+status.readout_time_ns*1e-9:status.trigger_thresholds["+i+"]"; 
   }
   beam_thresholds+=";;;xtitle:time;title:Trigger thresholds;ytitle:Power Sum(arb);xtime:1;labels:"; 
   for (var i = 0; i <15; i++)
