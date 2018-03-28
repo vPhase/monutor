@@ -685,8 +685,8 @@ function evt()
   optAppend("<input type='button' value='&rarr;' onClick='next()' title='Next event'>"); 
   optAppend("<input type='button' value='&#x22A3;' onClick='go(100000000)' title='Last event'>"); 
   optAppend(" &Delta;t<sub>&#x25b6;</sub>:<input type='range' value='500' min='50' max='5000' id='play_speed' size=30' title='Play speed' >"); 
-  optAppend(" | autoscale? <input type='checkbox' id='evt_autoscale' onchange='go(-1)' checked>"); 
-  optAppend(" Z:<input type='range' value='40' min='4' max='64' id='evt_zoom' title='Manual scale zoom' size=30 onchange='go(-1)'> "); 
+  optAppend(" | Z: <input type='range' value='40' min='4' max='64' id='evt_zoom' title='Manual scale' size=30 onchange='go(-1)'> "); 
+  optAppend(" auto<input type='checkbox' id='evt_autoscale' onchange='go(-1)'>"); 
 
   var hash_params = hashParams('event'); 
   document.getElementById('evt_run').value = hash_params['run']===undefined ? runs[runs.length-1]: hash_params['run']; 
