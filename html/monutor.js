@@ -671,12 +671,12 @@ function evt()
   optAppend("Run: <input id='evt_run' size=20> "); 
   optAppend("Entry: <input id='evt_entry' value='0' size=20> "); 
   optAppend("<input type='button' value='Go' onClick='go(-1)'>"); 
-  optAppend(" )|( <input type='button' value='<==' onClick='go(0)' title='Go to first event'>"); 
-  optAppend("<input type='button' value=' <- ' onClick='previous()' title='Previous event'>"); 
-  optAppend("<input type='button' id='pause_button' value=' || '' onClick='pause()' disabled title='Pause playing'>"); 
-  optAppend("<input type='button' id='play_button' value=' [>'' onClick='start()' title='Play through events'>"); 
-  optAppend("<input type='button' value=' -> ' onClick='next()' title='Next event'>"); 
-  optAppend("<input type='button' value=' ==>' onClick='go(100000000)' title='Last event'>"); 
+  optAppend(" )|( <input type='button' value='&#x22A2;' onClick='go(0)' title='Go to first event'>"); 
+  optAppend("<input type='button' value='&larr;' onClick='previous()' title='Previous event'>"); 
+  optAppend("<input type='button' id='pause_button' value='&#x25a0;' onClick='pause()' disabled title='Pause playing'>"); 
+  optAppend("<input type='button' id='play_button' value='&#x25b6;' onClick='start()' title='Play through events'>"); 
+  optAppend("<input type='button' value='&rarr;' onClick='next()' title='Next event'>"); 
+  optAppend("<input type='button' value='&#x22A3;' onClick='go(100000000)' title='Last event'>"); 
   optAppend(" |  Play Interval: <input type='range' value='500' min='50' max='5000' id='play_speed' height='10px'>"); 
 
   var hash_params = hashParams('event'); 
