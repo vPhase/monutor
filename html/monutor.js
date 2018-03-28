@@ -604,21 +604,62 @@ function go(i)
             g.fLineColor = graph_colors[0]; 
             g.fMarkerColor = graph_colors[0]; 
             g.InvertBit(JSROOT.BIT(18)); 
+            g.fName="g_b"+b+"_c"+ch; 
             P.graphs[ii]=g; 
+            var min=127; 
+            var max=0; 
             if ( !document.getElementById('evt_autoscale').checked)
             {
               var range = parseInt(document.getElementById('evt_zoom').value); 
-              g.fMinimum = 64-range; 
-              g.fMaximum = 64+range; 
+              min= 64-range; 
+              max= 64+range; 
             }
- 
+            else
+            {
+              for (var y = 0; y < N; y++) 
+              {
+                if (g.fY[y] < min) min = g.fY[y]; 
+                if (g.fY[y] > max) max = g.fY[y]; 
+              }
+              var delta = max-min;
+              max +=0.1*delta; 
+              min -=0.1*delta;
+            }
+
+            var histo = JSROOT.CreateHistogram("TH1I",100); 
+            histo.fName = g.fName + "_h";
+            histo.fTitle = g.fTitle;
+            histo.fXaxis.fXmin = 0;
+            histo.fXaxis.fXmax = N/1.5;;
+            histo.fYaxis.fXmin = min;
+            histo.fYaxis.fXmax = max;
+            histo.fXaxis.fTitleSize = 0.05; 
+            histo.fYaxis.fTitleSize = 0.05; 
+            histo.fXaxis.fLabelSize = 0.045; 
+            histo.fYaxis.fLabelSize = 0.045; 
+            histo.fXaxis.fTitleColor = 30;
+            histo.fYaxis.fTitleColor = 30; 
+            histo.fXaxis.fLabelColor = 30;
+            histo.fYaxis.fLabelColor = 30; 
+            histo.fYaxis.fAxisColor = 11; 
+            histo.fXaxis.fAxisColor = 11; 
+            histo.fMinimum = min;
+            histo.fMaximum = max;
+            histo.fBits = histo.fBits | JSROOT.TH1StatusBits.kNoStats;
+            histo.fXaxis.fTitle = "ns"; 
+            histo.fYaxis.fTitle = "adu"; 
+            
+            g.fHistogram = histo; 
+
             JSROOT.draw(c,g,"ALP;", function(painter)
                 {
                   var hist = painter.GetObject().fHistogram; 
-                  hist.fXaxis.fTitle = "ns"; 
-                  hist.fYaxis.fTitle = "adu"; 
                   painter.root_pad().fGridx = 1; 
                   painter.root_pad().fGridy = 1; 
+                  var tpainter = painter.FindPainterFor(null,"title"); 
+                  var pavetext = tpainter.GetObject(); 
+                  pavetext.fTextColor = 31; 
+                  tpainter.Redraw(); 
                   JSROOT.redraw(painter.divid, hist, ""); 
                 }); 
             ii++; 
@@ -788,6 +829,8 @@ function monutor_load()
 
   JSROOT.gStyle.fTitleX=0.1; 
   JSROOT.gStyle.fFrameFillColor=12; 
+  JSROOT.gStyle.fFrameLineColor=11; 
+  JSROOT.gStyle.fTitleColor=3; 
   JSROOT.gStyle.fGridColor=11; 
 
   pages['hk'] = Page('hk'); 
