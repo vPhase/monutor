@@ -605,6 +605,13 @@ function go(i)
             g.fMarkerColor = graph_colors[0]; 
             g.InvertBit(JSROOT.BIT(18)); 
             P.graphs[ii]=g; 
+            if ( !document.getElementById('evt_autoscale').checked)
+            {
+              var range = parseInt(document.getElementById('evt_zoom').value); 
+              g.fMinimum = 64-range; 
+              g.fMaximum = 64+range; 
+            }
+ 
             JSROOT.draw(c,g,"ALP;", function(painter)
                 {
                   var hist = painter.GetObject().fHistogram; 
@@ -612,7 +619,7 @@ function go(i)
                   hist.fYaxis.fTitle = "adu"; 
                   painter.root_pad().fGridx = 1; 
                   painter.root_pad().fGridy = 1; 
-                  JSROOT.redraw(painter.divid, hist, "gridx;gridy;"); 
+                  JSROOT.redraw(painter.divid, hist, ""); 
                 }); 
             ii++; 
           }
@@ -671,13 +678,15 @@ function evt()
   optAppend("Run: <input id='evt_run' size=20> "); 
   optAppend("Entry: <input id='evt_entry' value='0' size=20> "); 
   optAppend("<input type='button' value='Go' onClick='go(-1)'>"); 
-  optAppend(" )|( <input type='button' value='&#x22A2;' onClick='go(0)' title='Go to first event'>"); 
+  optAppend(" | <input type='button' value='&#x22A2;' onClick='go(0)' title='Go to first event'>"); 
   optAppend("<input type='button' value='&larr;' onClick='previous()' title='Previous event'>"); 
   optAppend("<input type='button' id='pause_button' value='&#x25a0;' onClick='pause()' disabled title='Pause playing'>"); 
   optAppend("<input type='button' id='play_button' value='&#x25b6;' onClick='start()' title='Play through events'>"); 
   optAppend("<input type='button' value='&rarr;' onClick='next()' title='Next event'>"); 
   optAppend("<input type='button' value='&#x22A3;' onClick='go(100000000)' title='Last event'>"); 
-  optAppend(" |  Play Interval: <input type='range' value='500' min='50' max='5000' id='play_speed' height='10px'>"); 
+  optAppend(" &Delta;t<sub>&#x25b6;</sub>:<input type='range' value='500' min='50' max='5000' id='play_speed' size=30' title='Play speed' >"); 
+  optAppend(" | autoscale? <input type='checkbox' id='evt_autoscale' onchange='go(-1)' checked>"); 
+  optAppend(" Z:<input type='range' value='40' min='4' max='64' id='evt_zoom' title='Manual scale zoom' size=30 onchange='go(-1)'> "); 
 
   var hash_params = hashParams('event'); 
   document.getElementById('evt_run').value = hash_params['run']===undefined ? runs[runs.length-1]: hash_params['run']; 
