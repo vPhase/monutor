@@ -63,7 +63,7 @@ function Page(name)
   console.log("Made new page " + name); 
   P = new Object; 
   P.main_canvas = name+"c"; 
-  document.getElementById('main').innerHTML += '<div id="'+P.main_canvas+'" style="display: none" width="100%" height=100%"> (loading js...)'+name+' </div>'; 
+  document.getElementById('main').innerHTML += '<div id="'+P.main_canvas+'" style="display: none" width="100%" height=100%"> </div>'; 
   P.page_name = name; 
   P.canvases = []; 
   P.graphs = [];  
@@ -85,6 +85,11 @@ function Page(name)
 // persist some things... 
 function clearCanvases(p)
 {
+  for (var i = 0; i < p.canvases.length; i++) 
+  {
+      JSROOT.cleanup(p.canvases[i]); 
+  }
+
   p.graphs = []; 
   p.leg_graphs = []; 
   p.wants = [];  
@@ -98,14 +103,9 @@ function clearCanvases(p)
   p.legends = []; 
   p.titles = []; 
 
-  for (var i = 0; i < p.canvases.length; i++) 
-  {
-      JSROOT.cleanup(p.canvases[i]); 
-  }
-
-  p.canvases =[]; 
-  var c = document.getElementById(p.main_canvas); 
-  c.innerHTML = ""; 
+//  p.canvases =[]; 
+//  var c = document.getElementById(p.main_canvas); 
+//  c.innerHTML = ""; 
 }
 
 function addCanvas(P,cl='canvas',show_name = true) 
@@ -245,7 +245,7 @@ function doDraw(page, ts, what,cut)
 
     page.graphs.push([]); 
     page.leg_graphs.push([]); 
-    addCanvas(page); 
+    if (page.canvases.length <= i) addCanvas(page); 
     var howmanytrees = 0; 
     var min_tt = ts.length -1; 
 
@@ -278,7 +278,6 @@ function doDraw(page, ts, what,cut)
           if (page.graphs[ii].length == page.wants[ii]) 
           {
             var mg = JSROOT.CreateTMultiGraph.apply(0,page.graphs[ii]); 
-            mg.fEditable = false; 
             mg.fTitle = page.titles[ii]; 
             JSROOT.draw(page.canvases[ii],mg,"A" +page.pstyle[ii], function (painter) 
               {
@@ -296,12 +295,12 @@ function doDraw(page, ts, what,cut)
  
                 hist.fYaxis.fTimeDisplay=page.ytime[ii]; 
                 hist.fXaxis.fTimeDisplay=page.xtime[ii]; 
-                JSROOT.redraw(page.canvases[ii],hist,"", function (painter) 
+                JSROOT.redraw(painter.divid,hist,"", function (painter) 
                   {
                     if (page.labels[ii].length)
                     {
                       var leg = makeLegend(0.7,1,0.9,1,page.leg_graphs[ii]); 
-                      JSROOT.draw(page.canvases[ii],leg);
+                      JSROOT.draw(painter.divid,leg);
                       page.legends.push(leg); 
                     }
                   }); 
