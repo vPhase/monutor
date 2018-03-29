@@ -1,5 +1,5 @@
 
-var graph_colors = [30,46,33,40,39, 7,28,5,19,32,37,2,3,4,9,29,1,6,49,41,43,31]; 
+var graph_colors = [30,46,33,40,7,28,5,19,32,37,2,3,4,9,29,1,6,49,41,43,31]; 
 
 
 function optClear()
@@ -53,10 +53,85 @@ function arrNonZero(arr)
   return false; 
 }
 
+var ffts = {}; 
+var navg = 0; 
+
+
+function getFFT(size) 
+{
+  if (ffts[size] === undefined)
+  {
+    ffts[size] = new FFTR(size); 
+  }
+
+  return ffts[size]; 
+}
+
+var first = 0;
+/** Gets the power spectrum of a TGraph, returning as a TGraph. Optionally will upsample in fourier space */ 
+function spec(g, upsample=1) 
+{
+  var N = g.fX.length;
+  var fft = getFFT(N); 
+  var Y = fft.forward(g.fY); 
+  var dt = g.fX[1] - g.fX[0]; 
+  var df = 1./(N * dt); 
+  var f = []; 
+  var P = []; 
+  if (!first) 
+  {
+    console.log(Y);
+    first++; 
+  }
+  for (var i = 0; i < N/2+1; i++)
+  {
+    f.push(i*df); 
+    var p = (Y[2*i]*Y[2*i] + Y[2*i+1]*Y[2*i+1]) / N/50.; 
+    P.push(10*Math.log10(p)); 
+  }
+
+  var G = JSROOT.CreateTGraph(N/2+1, f,P); 
+  G.fName = g.fName + "_power"; 
+  G.fTitle = g.fTitle.substring(g.fTitle.indexOf(',')+1); 
+
+  upsample = Math.round(upsample); 
+
+  if (upsample > 1) 
+  {
+    var newY = new Float32Array( 2*((upsample * N)/2 + 1)); 
+    for (var i = 0; i < N+2; i++) newY[i] = Y[i]/N; 
+    var fftU = getFFT(upsample * N); 
+    g.fNpoints = upsample*N; 
+    g.fY = fftU.inverse(newY); 
+    for (var i = 0; i < N*upsample; i++) 
+    {
+      g.fX[i] = dt/upsample *i; 
+    }
+  }
+
+  return G; 
+}
+
+
 
 
 
 var pages = {}; 
+
+function setGraphHistStyle(histo) 
+{
+    histo.fXaxis.fTitleSize = 0.05; 
+    histo.fYaxis.fTitleSize = 0.05; 
+    histo.fXaxis.fLabelSize = 0.045; 
+    histo.fYaxis.fLabelSize = 0.045; 
+    histo.fXaxis.fTitleColor = 30;
+    histo.fYaxis.fTitleColor = 30; 
+    histo.fXaxis.fLabelColor = 30;
+    histo.fYaxis.fLabelColor = 30; 
+    histo.fYaxis.fAxisColor = 11; 
+    histo.fXaxis.fAxisColor = 11; 
+    histo.fBits = histo.fBits | JSROOT.TH1StatusBits.kNoStats;
+}
 
 function Page(name)
 {
@@ -455,6 +530,7 @@ function hk()
 
 } 
 
+var the_ffts = [];
 
 function go(i) 
 {
@@ -580,6 +656,9 @@ function go(i)
         var X = []; 
         var ii = 0; 
         for (var x = 0; x < N; x++) { X.push(x/1.5) }; 
+        var do_fft = document.getElementById('evt_fft').checked; 
+        var do_avg = document.getElementById('avg_fft').checked; 
+        var upsample = document.getElementById('upsample').value; 
 
         for (var b = 0; b < data.length; b++)
         {
@@ -604,7 +683,31 @@ function go(i)
             g.fMarkerColor = graph_colors[0]; 
             g.InvertBit(JSROOT.BIT(18)); 
             g.fName="g_b"+b+"_c"+ch; 
+
             P.graphs[ii]=g; 
+
+            if (do_fft) 
+            {
+              var fft =  spec(g,upsample); 
+              if (do_avg && navg > 0) 
+              {
+                 if (ii ==0) navg++; 
+
+                 for (var ff = 0; ff < the_ffts[ii].fNpoints; ff++)
+                 {
+                   the_ffts[ii].fY[ff] =  10 * Math.log10((Math.pow(10, the_ffts[ii].fY[ff]/10) * (navg-1) + Math.pow(10, fft.fY[ff]/10)) / (navg)); 
+                 }
+
+              }
+              else
+              {
+                navg = do_avg ? 1 : 0; 
+                the_ffts[ii] =fft; 
+                the_ffts[ii].fLineColor = graph_colors[ii]; 
+                the_ffts[ii].fMarkerColor = graph_colors[ii]; 
+              }
+            }
+
             var min=127; 
             var max=0; 
             if ( !document.getElementById('evt_autoscale').checked)
@@ -615,7 +718,7 @@ function go(i)
             }
             else
             {
-              for (var y = 0; y < N; y++) 
+              for (var y = 0; y < g.fY.length; y++) 
               {
                 if (g.fY[y] < min) min = g.fY[y]; 
                 if (g.fY[y] > max) max = g.fY[y]; 
@@ -632,25 +735,15 @@ function go(i)
             histo.fXaxis.fXmax = N/1.5;;
             histo.fYaxis.fXmin = min;
             histo.fYaxis.fXmax = max;
-            histo.fXaxis.fTitleSize = 0.05; 
-            histo.fYaxis.fTitleSize = 0.05; 
-            histo.fXaxis.fLabelSize = 0.045; 
-            histo.fYaxis.fLabelSize = 0.045; 
-            histo.fXaxis.fTitleColor = 30;
-            histo.fYaxis.fTitleColor = 30; 
-            histo.fXaxis.fLabelColor = 30;
-            histo.fYaxis.fLabelColor = 30; 
-            histo.fYaxis.fAxisColor = 11; 
-            histo.fXaxis.fAxisColor = 11; 
             histo.fMinimum = min;
             histo.fMaximum = max;
-            histo.fBits = histo.fBits | JSROOT.TH1StatusBits.kNoStats;
             histo.fXaxis.fTitle = "ns"; 
             histo.fYaxis.fTitle = "adu"; 
+            setGraphHistStyle(histo); 
             
             g.fHistogram = histo; 
 
-            JSROOT.draw(c,g,"ALP;", function(painter)
+            JSROOT.draw(c,g,"AL;", function(painter)
                 {
                   var hist = painter.GetObject().fHistogram; 
                   painter.root_pad().fGridx = 1; 
@@ -666,7 +759,64 @@ function go(i)
         }
       }; 
 
-      sel.Terminate = function(res) { ; } 
+      sel.Terminate = function(res) 
+      { 
+        if (document.getElementById('evt_fft').checked) 
+        {
+          if (P.canvases.length <= the_ffts.length+1) 
+          {
+            c = addCanvas(P,'canvas_med',false); 
+          }
+          else
+          {
+            c = P.canvases[the_ffts.length+1]; 
+            document.getElementById(c).style.display = 'block'; 
+            JSROOT.cleanup(c); 
+          }
+
+          var mg = JSROOT.CreateTMultiGraph.apply(0, the_ffts); 
+          P.multigraphs[0] = mg; 
+          mg.fName="power"; 
+          mg.fTitle = "Power Spectra" ; 
+          if (navg > 0) mg.fTitle += "(" + navg + "avgs)"; 
+          var histo = JSROOT.CreateHistogram("TH1I",100); 
+          histo.fName = mg.fName + "_h";
+          histo.fTitle = mg.fTitle;
+          histo.fXaxis.fXmin = 0;
+          histo.fXaxis.fXmax = 0.75; 
+          histo.fYaxis.fXmin = -40;
+          histo.fYaxis.fXmax = 30;
+          histo.fMinimum = -40;
+          histo.fMaximum = 30;
+          histo.fXaxis.fTitle = "f (GHz)"; 
+          histo.fYaxis.fTitle = "dbM ish"; 
+          setGraphHistStyle(histo); 
+          mg.fHistogram = histo; 
+ 
+          JSROOT.draw(c, mg, "ALP", function (painter) 
+          {
+
+
+                var leg = makeLegend(0.6,1,0.7,1,the_ffts); 
+                var tpainter = painter.FindPainterFor(null,"title"); 
+                var pavetext = tpainter.GetObject(); 
+                pavetext.fTextColor = 31; 
+                tpainter.Redraw(); 
+   
+                JSROOT.draw(painter.divid,leg);
+                P.legends[0] = leg; 
+           }); 
+         }
+        else
+        {
+
+          if (P.canvases.length > the_ffts.length+1)
+          {
+            document.getElementById(P.canvases[the_ffts.length+1]).style.display = 'none'; 
+          }
+        }
+      }
+
       var args = { numentries: 1, firstentry : i} ;
       tree.Process(sel, args); 
     }); 
@@ -727,6 +877,9 @@ function evt()
   optAppend(" &Delta;t<sub>&#x25b6;</sub>:<input type='range' value='500' min='50' max='5000' id='play_speed' size=30' title='Play speed' >"); 
   optAppend(" | Z: <input type='range' value='40' min='4' max='64' id='evt_zoom' title='Manual scale' size=30 onchange='go(-1)'> "); 
   optAppend(" auto<input type='checkbox' id='evt_autoscale' onchange='go(-1)'>"); 
+  optAppend(" | spec?<input type='checkbox' id='evt_fft' checked title='Compute power spectrum (necessary for upsampling)' onchange='go(-1)'>");
+  optAppend("avg?<input type='checkbox' id='avg_fft' title='Check to average fft's (uncheck to reset)' onchange='go(-1)'>");
+  optAppend(" Up<input type='range' value='1' min='1' max ='16' id='upsample' onchange='go(-1)' title='upsample factor'>"); 
 
   var hash_params = hashParams('event'); 
   document.getElementById('evt_run').value = hash_params['run']===undefined ? runs[runs.length-1]: hash_params['run']; 
