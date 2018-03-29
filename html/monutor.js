@@ -86,7 +86,8 @@ function spec(g, upsample=1)
   for (var i = 0; i < N/2+1; i++)
   {
     f.push(i*df); 
-    var p = (Y[2*i]*Y[2*i] + Y[2*i+1]*Y[2*i+1]) / N/50.; 
+    var p = (Y[2*i]*Y[2*i] + Y[2*i+1]*Y[2*i+1]) / N; 
+    if (i > 0 || i < N/2) p*=2; 
     P.push(10*Math.log10(p)); 
   }
 
@@ -678,6 +679,9 @@ function go(i)
             }
 
             var g= JSROOT.CreateTGraph(N, X, data[b][ch]); 
+
+            for (var y = 0; y < N; y++) { g.fY[y]-=64; } 
+
             g.fTitle = " Evt" + ev + ", BD " + b + " , CH " + ch; 
             g.fLineColor = graph_colors[0]; 
             g.fMarkerColor = graph_colors[0]; 
@@ -708,13 +712,13 @@ function go(i)
               }
             }
 
-            var min=127; 
-            var max=0; 
+            var min=-64; 
+            var max=64; 
             if ( !document.getElementById('evt_autoscale').checked)
             {
               var range = parseInt(document.getElementById('evt_zoom').value); 
-              min= 64-range; 
-              max= 64+range; 
+              min= -range; 
+              max= range; 
             }
             else
             {
@@ -778,18 +782,18 @@ function go(i)
           P.multigraphs[0] = mg; 
           mg.fName="power"; 
           mg.fTitle = "Power Spectra" ; 
-          if (navg > 0) mg.fTitle += "(" + navg + "avgs)"; 
+          if (navg > 0) mg.fTitle += " (" + navg + "avgs)"; 
           var histo = JSROOT.CreateHistogram("TH1I",100); 
           histo.fName = mg.fName + "_h";
           histo.fTitle = mg.fTitle;
           histo.fXaxis.fXmin = 0;
           histo.fXaxis.fXmax = 0.75; 
-          histo.fYaxis.fXmin = -40;
-          histo.fYaxis.fXmax = 30;
-          histo.fMinimum = -40;
-          histo.fMaximum = 30;
+          histo.fYaxis.fXmin = -30;
+          histo.fYaxis.fXmax = 40;
+          histo.fMinimum = -30;
+          histo.fMaximum = 40;
           histo.fXaxis.fTitle = "f (GHz)"; 
-          histo.fYaxis.fTitle = "dbM ish"; 
+          histo.fYaxis.fTitle = "db ish"; 
           setGraphHistStyle(histo); 
           mg.fHistogram = histo; 
  
@@ -797,7 +801,7 @@ function go(i)
           {
 
 
-                var leg = makeLegend(0.6,1,0.7,1,the_ffts); 
+                var leg = makeLegend(0.6,1,0.75,1,the_ffts); 
                 var tpainter = painter.FindPainterFor(null,"title"); 
                 var pavetext = tpainter.GetObject(); 
                 pavetext.fTextColor = 31; 
