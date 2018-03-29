@@ -1,5 +1,5 @@
 
-var graph_colors = [30,46,33,40,7,28,5,19,32,37,2,3,4,9,29,1,6,49,41,43,31]; 
+var graph_colors = [30,46,28,6,7,5,4,42,41,2,3,10,49,1,33,40,37,32,29,20,21]; 
 
 
 function optClear()
@@ -712,8 +712,8 @@ function go(i)
               }
             }
 
-            var min=-64; 
-            var max=64; 
+            var min=64; 
+            var max=-64; 
             if ( !document.getElementById('evt_autoscale').checked)
             {
               var range = parseInt(document.getElementById('evt_zoom').value); 
