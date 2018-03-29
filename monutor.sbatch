@@ -26,7 +26,7 @@ if [ -n "$MONUTOR_DIR" ]; then
 fi;
 
 cd ../;
-. ../env.sh 
+. env.sh 
 cd - 
 
 make 
