@@ -52,6 +52,9 @@ extract.d: sync | $(RAW_DIR) $(RAW_DIR)/hk
 	echo -n "extract-hk: " >> $@ 
 	find $(LOCAL_DEST)/$(HK_DIR) -type f -name *.flat.tar | sed 's/.flat.tar/.hkextracted \\/'>> $@
 	echo >> $@
+
+rootify.d: 
+	touch $@
 endif
 
 ifeq (1,${MAKE_RESTARTS}) 
@@ -165,7 +168,7 @@ new_hk:
 	touch $@
 
 # Merge all housekeeping into a single root file since it's small 
-$(HTML_DIR)/all_hk.root: new_hk  | $(HTML_DIR) 
+$(HTML_DIR)/all_hk.root: new_hk  | $(HTML_DIR) rootify
 	hadd  $@.tmp $(ROOT_DIR)/hk/*/*/*.root
 	mv $@.tmp $@
 
