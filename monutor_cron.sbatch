@@ -21,7 +21,7 @@ SCHEDULE='5 */2 * * *'
 
 #cancel any other script if there is one already
 scancel --name monutor 
-sbatch -A pi-avieregg -p broadwl monutor.sbatch 
+sbatch -A kicp -p kicp monutor.sbatch 
 
 # resubmit this script with --begin set to the next scheduled cron time
 # next-cron-time is a script that parses a cron schedule string and returns
