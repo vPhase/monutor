@@ -127,6 +127,16 @@ $(RAW_DIR)/%.tar: $(RAW_DIR)/%
 # Do NOT delete tar files!
 .PRECIOUS: $(RAW_DIR)/%.tar 
 
+#special case hk 
+$(ROOT_DIR)/hk/%.root: $(RAW_DIR)/hk/%.tar 
+	mkdir -p $(@D) 
+	tar -C $(@D) --extract -f $< 
+	nuphaseroot-convert hk $(@D)/$(*F) $@.tmp
+	mv $@.tmp $@ 
+	rm -rf $(@D)/$(*F)  
+	touch new_hk; 
+
+
 
 # Crazy rule to rootify root file from raw event tar
 $(ROOT_DIR)/%.root: $(RAW_DIR)/%.tar 
@@ -136,15 +146,6 @@ $(ROOT_DIR)/%.root: $(RAW_DIR)/%.tar
 	mv $@.tmp $@ 
 	rm -rf $(@D)/$(*F)  
 
-
-#special case hk 
-$(ROOT_DIR)/hk/%.root: $(RAW_DIR)/hk/%.tar 
-	mkdir -p $(@D) 
-	tar -C $(@D) --extract -f $< 
-	nuphaseroot-convert hk $(@D)/$(*F) $@.tmp
-	mv $@.tmp $@ 
-	rm -rf $(@D)/$(*F)  
-	touch new_hk; 
 
 
 $(ROOT_DIR)/%/header.filtered.root: $(ROOT_DIR)/%/event.root $(ROOT_DIR)/%/header.root 
