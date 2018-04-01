@@ -33,6 +33,29 @@ function hashParams(what)
 }
 
 
+function prettyPrintHeader(vars) 
+{
+  str = ""; 
+
+  str += "<table><tr>"; 
+  str += "<td>Event number: " + vars["header.event_number"] +"</td>"; 
+  str += "<td>Trigger number: " + vars["header.trig_number"] +"</td>"; 
+  str += "<td>Readout time (master): " + new Date(parseInt(vars["header.readout_time"][0])*1000 + parseInt(vars["header.readout_time_ns"][0])/1e6).toISOString() +"</td>"; 
+  str += "<td>Readout time (slave): " + new Date(parseInt(vars["header.readout_time"][1])*1000 + parseInt(vars["header.readout_time_ns"][1])/1e6).toISOString() +"</td></tr>"; 
+  var isRF = parseInt(vars["header.trigger_type"]) == 2; 
+  var isCalib = isRF && parseInt(vars["header.gate_flag"]); 
+  str += "<tr><td>Trigger type: " + ( isCalib ? "CALIB" : isRF ? "RF" : "FORCE") + "</td>"
+  var triggered_beam = Math.log2(parseInt(vars["header.triggered_beams"])); 
+  str += "<td>Triggered beam: " + (isRF? triggered_beam : "N/A") +"</td>"; 
+  str += "<td>Triggered beam power: " + (isRF ? vars["header.beam_power"][triggered_beam] : "N/A") + "</td>"; 
+  str += "<td>Raw TrigTime: " +vars["header.trig_time"]+"</td></tr>"; 
+  str += "</table> "; 
+    
+  return str; 
+
+}
+
+
 function plotHelp()
 {
   alert("Plot Help:\nDifferent plots are separated by line returns. Different lines on same plot are separated by |||.\nAfter ;;;, you may add additional options\n\txtitle=string\n\tytitle=string\n\txtime=0|1\n\tytime=0|1\n\tlabels=label1,label2,label3,etc."); 
@@ -604,8 +627,10 @@ function go(i)
       { 
         var hdrc = document.getElementById(pages['event'].canvases[0]); 
 
+        /*
         var str = ""; 
         //todo, format nicer 
+        
         str += "<table>"; 
         for (var b = 0; b < header_vars.length; b++) 
         {
@@ -614,7 +639,8 @@ function go(i)
           if ( b % 3 == 2) str += "</tr>"; 
         }
         str += "</table>"; 
-        hdrc.innerHTML = str; 
+        */
+        hdrc.innerHTML = prettyPrintHeader(this.tgtobj);  
       }; 
 
       sel.Terminate = function(res) { ; } 
