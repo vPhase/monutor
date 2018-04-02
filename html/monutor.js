@@ -133,6 +133,7 @@ function spec(g, upsample=1)
     }
   }
 
+  G.InvertBit(JSROOT.BIT(18)); 
   return G; 
 }
 
