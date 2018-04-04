@@ -92,13 +92,14 @@ function getFFT(size)
 
 var first = 0;
 /** Gets the power spectrum of a TGraph, returning as a TGraph. Optionally will upsample in fourier space */ 
-function spec(g, upsample=1) 
+function spec(g, upsample=1, envelope = null) 
 {
   var N = g.fX.length;
   var fft = getFFT(N); 
   var Y = fft.forward(g.fY); 
   var dt = g.fX[1] - g.fX[0]; 
   var df = 1./(N * dt); 
+  var t0 = g.fX[0]; 
   var f = []; 
   var P = []; 
   if (!first) 
@@ -120,6 +121,9 @@ function spec(g, upsample=1)
 
   upsample = Math.round(upsample); 
 
+  var Yp = null;
+
+
   if (upsample > 1) 
   {
     var newY = new Float32Array( 2*((upsample * N)/2 + 1)); 
@@ -129,7 +133,28 @@ function spec(g, upsample=1)
     g.fY = fftU.inverse(newY); 
     for (var i = 0; i < N*upsample; i++) 
     {
-      g.fX[i] = dt/upsample *i; 
+      g.fX[i] = dt/upsample *i + t0; 
+    }
+    delete newY; 
+  }
+
+  if (envelope != null) 
+  {
+    var Yp = new Float32Array( 2*((upsample*N)/2+1)); 
+    for (var i = 0; i < N/2+1; i++)
+    {
+      Yp[2*i] = Y[i] / N; 
+      Yp[2*i+1] = -Y[i] / N; 
+    }
+
+    var fftU = getFFT(upsample * N); 
+    var yp = fftU.inverse(Yp); 
+    envelope.fNpoints = N*upsample;; 
+
+    for (var i = 0; i < N*upsample; i++)
+    {
+      envelope.fX[i] = dt/upsample * i + t0; 
+      envelope.fY[i] = Math.sqrt( g.fY[i] * g.fY[i] + yp[i] * yp[i])/Math.sqrt(2); 
     }
   }
 
