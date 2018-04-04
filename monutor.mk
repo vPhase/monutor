@@ -68,6 +68,8 @@ rootify.d: extract | $(ROOT_DIR)
 	echo -n "rootify-status: " >> $@
 	find $(RAW_DIR) -type d -name status -printf '$(ROOT_DIR)/%P.root ' >> $@
 	find $(RAW_DIR) -type f -name status.tar -printf '$(ROOT_DIR)/%P ' | sed 's/.tar/.root/g' >> $@
+	find $(RAW_DIR) -type d -name status -printf '$(ROOT_DIR)/%P.decimated.root ' >> $@
+	find $(RAW_DIR) -type f -name status.tar -printf '$(ROOT_DIR)/%P ' | sed 's/.tar/.decimated.root/g' >> $@
 	echo >> $@
 	echo -n "rootify-header: " >> $@
 	find $(RAW_DIR) -type d  -name header -printf '$(ROOT_DIR)/%P.root ' >> $@
@@ -147,6 +149,12 @@ $(ROOT_DIR)/%.root: $(RAW_DIR)/%.tar
 	rm -rf $(@D)/$(*F)  
 
 
+# Rule to make decimated file 
+$(ROOT_DIR)/%.decimated.root: $(ROOT_DIR)/%.root
+	ln $< $<.tmp 
+	nuphaseroot-decimate $(*F) 25 $(@D)/$(*F).root.tmp 
+	unlink $<.tmp 
+	mv $@.tmp $@ 
 
 $(ROOT_DIR)/%/header.filtered.root: $(ROOT_DIR)/%/event.root $(ROOT_DIR)/%/header.root 
 	nuphaseroot-convert filtered_header $^ $@ 

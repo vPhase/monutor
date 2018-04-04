@@ -446,6 +446,7 @@ function statusTreeDraw()
   var run0 = parseInt(document.getElementById('status_start_run').value); 
   var run1 = parseInt(document.getElementById('status_end_run').value); 
 
+  var decimated = document.getElementById('status_use_decimated').checked ? ".decimated" : "" 
   window.location.hash = "status&run0=" + run0 + "&run1=" + run1; 
 
   var status_trees = []; 
@@ -457,7 +458,7 @@ function statusTreeDraw()
 
   for (var r = run0; r <= run1; r++)
   {
-    files_to_load.push("rootdata/run"+r+"/status.root"+suffix); 
+    files_to_load.push("rootdata/run"+r+"/status"+decimated+".root"+suffix); 
   }
 
   console.log(files_to_load); 
@@ -950,8 +951,8 @@ function stat()
 
   optAppend("Start Run: <input id='status_start_run' size=10> ");
   optAppend("Stop Run: <input id='status_end_run' size=10> " ); 
-  optAppend("Cut: <input id='status_cut' size=20 value='Entry$%10==0'>");
-  optAppend(" | Full xfers(<a href='javascript:transferHelp()'>?</a>) : <input type=checkbox id='status_full_transfers' checked> <br>"); 
+  optAppend("Cut: <input id='status_cut' size=20 value=''>");
+  optAppend(" | Full xfers(<a href='javascript:transferHelp()'>?</a>) : <input type=checkbox id='status_full_transfers' checked>  | Use decimated files<input type=checkbox id='status_use_decimated' checked><br>"); 
   optAppend("Plot(<a href='javascript:plotHelp()'><u>?</u></a>):<br>");
 
   var global_scalers= "status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[0]/10";
@@ -989,7 +990,7 @@ function stat()
   optAppend("<br><input type='button' onClick='return statusTreeDraw()' value='Draw'>"); 
 
   var hash_params = hashParams('status'); 
-  document.getElementById('status_start_run').value =  hash_params['run0'] === undefined ? runs[Math.max(0,runs.length-5)] : parseInt(hash_params['run0']); 
+  document.getElementById('status_start_run').value =  hash_params['run0'] === undefined ? runs[Math.max(0,runs.length-8)] : parseInt(hash_params['run0']); 
   document.getElementById('status_end_run').value =  hash_params['run1'] === undefined ? runs[runs.length-1] : parseInt(hash_params['run1']); 
 
   statusTreeDraw(); 
