@@ -90,7 +90,6 @@ function getFFT(size)
   return ffts[size]; 
 }
 
-var first = 0;
 /** Gets the power spectrum of a TGraph, returning as a TGraph. Optionally will upsample in fourier space */ 
 function spec(g, upsample=1, envelope = null) 
 {
@@ -102,11 +101,6 @@ function spec(g, upsample=1, envelope = null)
   var t0 = g.fX[0]; 
   var f = []; 
   var P = []; 
-  if (!first) 
-  {
-    console.log(Y);
-    first++; 
-  }
   for (var i = 0; i < N/2+1; i++)
   {
     f.push(i*df); 
@@ -127,7 +121,7 @@ function spec(g, upsample=1, envelope = null)
   if (upsample > 1) 
   {
     var newY = new Float32Array( 2*((upsample * N)/2 + 1)); 
-    for (var i = 0; i < N+2; i++) newY[i] = Y[i]/N; 
+    for (var i = 0; i < 2*(N/2 + 1); i++) newY[i] = Y[i]/N; 
     var fftU = getFFT(upsample * N); 
     g.fNpoints = upsample*N; 
     g.fY = fftU.inverse(newY); 
@@ -141,14 +135,14 @@ function spec(g, upsample=1, envelope = null)
   if (envelope != null) 
   {
     var Yp = new Float32Array( 2*((upsample*N)/2+1)); 
-    for (var i = 0; i < N/2+1; i++)
+    for (var i = 1; i < N/2; i++)
     {
       Yp[2*i] = -Y[2*i+1] / N; 
       Yp[2*i+1] = Y[2*i] / N; 
     }
 
-    var fftU = getFFT(upsample * N); 
-    var yp = fftU.inverse(Yp); 
+    var fftH = getFFT(upsample * N); 
+    var yp = fftH.inverse(Yp); 
     envelope.fNpoints = N*upsample;; 
 
     for (var i = 0; i < N*upsample; i++)
@@ -754,6 +748,8 @@ function go(i)
               env = JSROOT.CreateTGraph(0,[],[]); 
               env.fLineColor = graph_colors[4]; 
               env.fMarkerColor = graph_colors[4]; 
+              env.fTitle = "Envelope" 
+              env.fName = "envelope" 
             }
 
             P.graphs[2*ii]=g; 
