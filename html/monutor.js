@@ -143,8 +143,8 @@ function spec(g, upsample=1, envelope = null)
     var Yp = new Float32Array( 2*((upsample*N)/2+1)); 
     for (var i = 0; i < N/2+1; i++)
     {
-      Yp[2*i] = Y[i] / N; 
-      Yp[2*i+1] = -Y[i] / N; 
+      Yp[2*i] = -Y[2*i+1] / N; 
+      Yp[2*i+1] = Y[2*i] / N; 
     }
 
     var fftU = getFFT(upsample * N); 
@@ -154,7 +154,7 @@ function spec(g, upsample=1, envelope = null)
     for (var i = 0; i < N*upsample; i++)
     {
       envelope.fX[i] = dt/upsample * i + t0; 
-      envelope.fY[i] = Math.sqrt( g.fY[i] * g.fY[i] + yp[i] * yp[i])/Math.sqrt(2); 
+      envelope.fY[i] = Math.sqrt( g.fY[i] * g.fY[i] + yp[i] * yp[i]); 
     }
   }
 
@@ -714,8 +714,11 @@ function go(i)
         var ii = 0; 
         for (var x = 0; x < N; x++) { X.push(x/1.5) }; 
         var do_fft = document.getElementById('evt_fft').checked; 
+        var do_envelope = document.getElementById('evt_hilbert').checked; 
+        var do_measure = document.getElementById('evt_measure').checked; 
         var do_avg = document.getElementById('avg_fft').checked; 
         var upsample = document.getElementById('upsample').value; 
+        var autoscale = document.getElementById('evt_autoscale').checked; 
 
         for (var b = 0; b < data.length; b++)
         {
@@ -744,11 +747,31 @@ function go(i)
             g.InvertBit(JSROOT.BIT(18)); 
             g.fName="g_b"+b+"_c"+ch; 
 
-            P.graphs[ii]=g; 
+            env = null; 
+
+            if (do_envelope && do_fft) 
+            {
+              env = JSROOT.CreateTGraph(0,[],[]); 
+              env.fLineColor = graph_colors[4]; 
+              env.fMarkerColor = graph_colors[4]; 
+            }
+
+            P.graphs[2*ii]=g; 
+            P.graphs[2*ii+1]=env; 
+
+            if (do_measure)
+            {
+              var sum = 0; 
+              var sum2 = 0; 
+
+
+
+            }
+
 
             if (do_fft) 
             {
-              var fft =  spec(g,upsample); 
+              var fft =  spec(g,upsample, do_envelope ? env : null); 
               if (do_avg && navg > 0) 
               {
                  if (ii ==0) navg++; 
@@ -770,7 +793,50 @@ function go(i)
 
             var min=64; 
             var max=-64; 
-            if ( !document.getElementById('evt_autoscale').checked)
+            var sum2 = 0; 
+            var sum = 0;
+
+            if (autoscale || do_measure) 
+            {
+              for (var y = 0; y < g.fY.length; y++) 
+              {
+                  if (g.fY[y] < min) min = g.fY[y]; 
+                  if (g.fY[y] > max) max = g.fY[y]; 
+
+                  if (do_measure)
+                  {
+                    sum2 += g.fY[y]*g.fY[y]; 
+                    sum += g.fY[y]; 
+                  }
+              }
+
+            }
+            var delta = max-min;
+            var pave = null; 
+
+            if (do_measure) 
+            {
+              var avg = sum / g.fNpoints; 
+              var rms = Math.sqrt(sum2 / g.fNpoints - avg * avg); 
+
+              pave =  JSROOT.Create("TPaveText"); 
+              pave.fTitle="measurements"; 
+              pave.fName="measure"; 
+              pave.fLineStyle = 0; 
+              pave.fTextSize = 12; 
+              pave.fX1NDC=0.1; 
+              pave.fX2NDC=0.9; 
+              pave.fY1NDC=0.1; 
+              pave.fY2NDC=0.3; 
+              pave.AddText("max: " + max.toFixed(3) + "  min: " + min.toFixed(3) + "  Vpp: " + delta.toFixed(3)); 
+              pave.AddText("avg: " + avg.toFixed(3) + "  rms: " + rms.toFixed(3)); 
+              pave.fLines.arr[0].fTextColor = 5; 
+              pave.fLines.arr[1].fTextColor = 5; 
+              P.legends[ii] = pave; 
+            }
+
+ 
+            if (!autoscale)
             {
               var range = parseInt(document.getElementById('evt_zoom').value); 
               min= -range; 
@@ -778,12 +844,6 @@ function go(i)
             }
             else
             {
-              for (var y = 0; y < g.fY.length; y++) 
-              {
-                if (g.fY[y] < min) min = g.fY[y]; 
-                if (g.fY[y] > max) max = g.fY[y]; 
-              }
-              var delta = max-min;
               max +=0.1*delta; 
               min -=0.1*delta;
             }
@@ -803,7 +863,7 @@ function go(i)
             
             g.fHistogram = histo; 
 
-            JSROOT.draw(c,g,"AL;", function(painter)
+            JSROOT.draw(c,g,"AL", function(painter)
                 {
                   var hist = painter.GetObject().fHistogram; 
                   painter.root_pad().fGridx = 1; 
@@ -813,7 +873,22 @@ function go(i)
                   pavetext.fTextColor = 31; 
                   tpainter.Redraw(); 
                   JSROOT.redraw(painter.divid, hist, ""); 
+                  if (do_envelope & do_fft) 
+                  {
+
+                  }
                 }); 
+
+            if (do_envelope && do_fft) 
+            {
+              JSROOT.draw(c,env, "LSAME"); 
+            }
+
+            if (do_measure) 
+            {
+              JSROOT.draw(c,pave,"SAME"); 
+            }
+
             ii++; 
           }
         }
@@ -940,6 +1015,8 @@ function evt()
   optAppend(" | spec?<input type='checkbox' id='evt_fft' checked title='Compute power spectrum (necessary for upsampling)' onchange='go(-1)'>");
   optAppend("avg?<input type='checkbox' id='avg_fft' title='Check to average fft's (uncheck to reset)' onchange='go(-1)'>");
   optAppend(" Up<input type='range' value='1' min='1' max ='16' id='upsample' onchange='go(-1)' title='upsample factor'>"); 
+  optAppend(" | env?<input type='checkbox' id='evt_hilbert' title='Compute Hilbert Envelope (requires spectrum))' onchange='go(-1)'>");
+  optAppend(" | meas?<input type='checkbox' id='evt_measure' title='Perform measurements' onchange='go(-1)'>");
 
   var hash_params = hashParams('event'); 
   document.getElementById('evt_run').value = hash_params['run']===undefined ? runs[runs.length-1]: hash_params['run']; 
@@ -1038,6 +1115,8 @@ function show(what)
 
 function monutor_load()
 {
+
+
 
   JSROOT.gStyle.fTitleX=0.1; 
   JSROOT.gStyle.fFrameFillColor=12; 
