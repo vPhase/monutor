@@ -955,10 +955,10 @@ function stat()
   optAppend(" | Full xfers(<a href='javascript:transferHelp()'>?</a>) : <input type=checkbox id='status_full_transfers' checked>  | Use decimated files<input type=checkbox id='status_use_decimated' checked><br>"); 
   optAppend("Plot(<a href='javascript:plotHelp()'><u>?</u></a>):<br>");
 
-  var global_scalers= "status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[0]/10";
+  var global_scalers= "status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[2]";
   global_scalers += "|||status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[1]/10";
-  global_scalers += "|||status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[2]";
-  global_scalers += ";;;xtitle:time;title:Global Scalers;ytitle:Hz;xtime:1;labels:Slow,Slow Gated,Fast"
+  global_scalers += "|||status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[0]/10";
+  global_scalers += ";;;xtitle:time;title:Global Scalers;ytitle:Hz;xtime:1;labels:Fast,Slow Gated,Slow"
 
   var beam_scalers = ""; 
   for (var i = 0; i <15; i++)
