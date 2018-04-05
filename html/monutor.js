@@ -411,15 +411,18 @@ function doDraw(page, ts, what,cut)
                 hist.fYaxis.fTitle=page.ytitles[ii]; 
                 if (page.xtime[ii])
                 {
-                  hist.fXaxis.fTitle += " (start = " + new Date(hist.fXaxis.fXmin*1000.).toUTCString() + ")"; 
+                  hist.fXaxis.fTitle += " (start = " + new Date(hist.fXaxis.fXmin*1000.).toISOString() + ")"; 
                 }
                 if (page.ytime[ii])
                 {
-                  hist.fYaxis.fTitle += " (start = " + new Date(hist.fYaxis.fXmin*1000.).toUTCString() + ")"; 
+                  hist.fYaxis.fTitle += " (start = " + new Date(hist.fYaxis.fXmin*1000.).toISOString() + ")"; 
                 }
  
+                var date = new Date(Date.now()); 
                 hist.fYaxis.fTimeDisplay=page.ytime[ii]; 
                 hist.fXaxis.fTimeDisplay=page.xtime[ii]; 
+                hist.fYaxis.fTimeFormat="%F1970-01-01 " +date.getTimezoneOffset()/60 +":00:00s0" ;
+                hist.fXaxis.fTimeFormat="%F1970-01-01 " +date.getTimezoneOffset()/60 +":00:00s0" ;
                 JSROOT.redraw(painter.divid,hist,"", function (painter) 
                   {
                     if (page.labels[ii].length)
@@ -581,7 +584,7 @@ function hk()
 
 } 
 
-var the_ffts = [];
+the_ffts = [];
 
 function go(i) 
 {
