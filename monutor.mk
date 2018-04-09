@@ -11,7 +11,7 @@
 ## Define what you need for your site in site.cfg
 
 
-.PHONY: all sync clean extract-status extract-header extract-hk extract-event rootify-event rootify-hk rootify-header rootify-status
+.PHONY: all sync clean extract-status extract-header extract-hk extract-event rootify-event rootify-hk rootify-header rootify-status filtered-header decimated-status
 
 all: deploy 
 
@@ -55,6 +55,8 @@ extract.d: sync | $(RAW_DIR) $(RAW_DIR)/hk
 
 rootify.d: 
 	touch $@
+filtered.d: 
+	touch $@
 endif
 
 ifeq (1,${MAKE_RESTARTS}) 
@@ -68,18 +70,26 @@ rootify.d: extract | $(ROOT_DIR)
 	echo -n "rootify-status: " >> $@
 	find $(RAW_DIR) -type d -name status -printf '$(ROOT_DIR)/%P.root ' >> $@
 	find $(RAW_DIR) -type f -name status.tar -printf '$(ROOT_DIR)/%P ' | sed 's/.tar/.root/g' >> $@
-	find $(RAW_DIR) -type d -name status -printf '$(ROOT_DIR)/%P.decimated.root ' >> $@
-	find $(RAW_DIR) -type f -name status.tar -printf '$(ROOT_DIR)/%P ' | sed 's/.tar/.decimated.root/g' >> $@
 	echo >> $@
 	echo -n "rootify-header: " >> $@
 	find $(RAW_DIR) -type d  -name header -printf '$(ROOT_DIR)/%P.root ' >> $@
 	find $(RAW_DIR) -type f -name header.tar -printf '$(ROOT_DIR)/%P ' | sed 's/.tar/.root/g' >> $@
-	find $(RAW_DIR) -type d  -name header -printf '$(ROOT_DIR)/%P.filtered.root ' >> $@
-	find $(RAW_DIR) -type f -name header.tar -printf '$(ROOT_DIR)/%P ' | sed 's/.tar/.filtered.root/g' >> $@
 	echo >> $@
 	echo -n "rootify-hk: " >> $@ 
 	find $(RAW_DIR)/hk -mindepth 3 -type d -printf '$(ROOT_DIR)/hk/%P.root ' >> $@
 	find $(RAW_DIR) -type f -name *.tar -printf '$(ROOT_DIR)/%P ' | sed 's/.tar/.root/g' >> $@
+	echo >> $@
+endif
+
+
+ifeq (2,${MAKE_RESTARTS})
+filtered.d: rootify  | $(ROOT_DIR) 
+	echo "# Automatically generated file. Dont' touch. " > $@
+	echo -n "decimated-status: " >> $@
+	find $(ROOT_DIR) -type f -name status.root -printf '%h/status.decimated.root ' >> $@
+	echo >> $@
+	echo -n "filtered-header: " >> $@
+	find $(ROOT_DIR) -type d  -name run* -exec test -e {}/event.root -a -e {}/header.root \; -printf '%p/header.filtered.root ' >>$@
 	echo >> $@
 endif
 
@@ -98,7 +108,7 @@ $(HTML_DIR):
 	mkdir -p $@
 
 ## Extraction!
-extract: extract.d extract-status extract-event extract-hk extract-header 
+extract: extract.d extract-status extract-event extract-hk extract-header
 	touch $@
 
 
@@ -162,9 +172,11 @@ $(ROOT_DIR)/%/header.filtered.root: $(ROOT_DIR)/%/event.root $(ROOT_DIR)/%/heade
 rootify: extract rootify.d rootify-event rootify-status rootify-header rootify-hk 
 	touch $@ 
 
+filtered: rootify filtered.d filtered-header decimated-status
+	touch $@ 
 
 ##TODO 
-html/runlist.js: rootify
+html/runlist.js: rootify filtered
 	echo "var runs = [ " > $@ 
 	find $(ROOT_DIR) -type d -name run* -printf '  %f,\n' | sed 's/run//' | sort -n  >> $@ 
 	echo "];" >> $@
@@ -190,13 +202,14 @@ $(HTML_DIR)/jsroot: jsroot/scripts jsroot/style
 	cp -r $^ $@
 
 
-deploy:  rootify $(HTML_DIR)/rootdata $(HTML_DIR)/index.html $(HTML_DIR)/monutor.js  $(HTML_DIR)/runlist.js $(HTML_DIR)/all_hk.root $(HTML_DIR)/jsroot $(HTML_DIR)/monutor.ico $(HTML_DIR)/monutor.png $(HTML_DIR)/KissFFT.js $(HTML_DIR)/FFT.js | $(HTML_DIR) 
+deploy:  extract rootify filtered $(HTML_DIR)/rootdata $(HTML_DIR)/index.html $(HTML_DIR)/monutor.js  $(HTML_DIR)/runlist.js $(HTML_DIR)/all_hk.root $(HTML_DIR)/jsroot $(HTML_DIR)/monutor.ico $(HTML_DIR)/monutor.png $(HTML_DIR)/KissFFT.js $(HTML_DIR)/FFT.js | $(HTML_DIR) 
 	touch $@ 
 
 
 
 include extract.d
 include rootify.d
+include derived.d 
 
 
 
