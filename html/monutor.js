@@ -615,6 +615,8 @@ function go(i)
   document.getElementById('load').innerHTML += ' | <a href="'+head_file+'">Filtered Head File</a>'
   var full_head_file = "rootdata/run" + run + "/header.root"; 
   document.getElementById('load').innerHTML += ' | <a href="'+full_head_file+'">Full Head File</a>'
+  var status_file = "rootdata/run" + run + "/status.root"; 
+  document.getElementById('load').innerHTML += ' | <a href="'+status_file+'">Status File</a>'
 
   JSROOT.OpenFile(head_file, function(file) 
   {
