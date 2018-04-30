@@ -124,7 +124,7 @@ extract: extract.d extract-status extract-event extract-hk extract-header
 
 ## Unflatten 
 $(LOCAL_DEST)/%.tar: $(LOCAL_DEST)/%.flat.tar  | $(LOCAL_DEST) 
-	tar -C $(@D) -xf $^ *.tar 
+	tar -C $(@D) -xf $^ *.tar || tar -cvf $@ --files-from /dev/null 
 
 # Put all files in tar files so we don't have so many of them 
 $(RAW_DIR)/%.tar: $(RAW_DIR)/%
