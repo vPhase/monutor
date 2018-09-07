@@ -124,7 +124,7 @@ extract: extract.d extract-status extract-event extract-hk extract-header
 
 ## Unflatten 
 $(LOCAL_DEST)/%.tar: $(LOCAL_DEST)/%.flat.tar  | $(LOCAL_DEST) 
-	tar -C $(@D) -xf $^ *.tar || tar -cvf $@ --files-from /dev/null 
+	tar -C $(@D) -xf $^ *.tar && tar -cvf $@ 
 
 # Put all files in tar files so we don't have so many of them 
 $(RAW_DIR)/%.tar: $(RAW_DIR)/%
@@ -175,12 +175,22 @@ rootify: extract rootify.d rootify-event rootify-status rootify-header rootify-h
 filtered: rootify filtered.d filtered-header decimated-status
 	touch $@ 
 
-##TODO 
-html/runlist.js: rootify filtered
+
+html/runs: rootify filtered
+	find $(ROOT_DIR) -type d -name run* -printf '  %f\n' | sed 's/run//' | sort -n  | paste -s -d ',' > $@ 
+
+html/runlist.js: html/runs
 	echo "var runs = [ " > $@ 
-	find $(ROOT_DIR) -type d -name run* -printf '  %f,\n' | sed 's/run//' | sort -n  >> $@ 
+	cat  $< >> $@
 	echo "];" >> $@
 	echo "var last_updated = \"`date -u`\";" >> $@ 
+
+html/runlist.json: html/runs
+	echo "{ \"runs\" : [" > $@
+	sed -e 's/,^//g'  $< >> $@
+	echo "]," >> $@
+	echo "\"last_updated\" : \"`date -u`\"" >> $@ 
+	echo "}" >> $@
 
 $(HTML_DIR)/% : html/% 
 	cp  $< $@
