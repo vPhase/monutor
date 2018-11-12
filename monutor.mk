@@ -28,12 +28,16 @@ clean:
 
 ### Copy over new files 
 sync: | $(LOCAL_DEST) 
+ifdef REMOTE_HOST
 	rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(STATUS_DIR) $(LOCAL_DEST)/ >> $@
 	rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(HK_DIR) $(LOCAL_DEST)/ >> $@
 	rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(EVENT_DIR) $(LOCAL_DEST)/ >> $@
 	rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(HEADER_DIR) $(LOCAL_DEST)/ >> $@
+else
+	echo "No need to sync" 
+endif
 
-
+ifdef REMOTE_HOST # only need to the the weird tarring thing if from a remote host
 ### These are responsible for generating the list of files to extract and rootify 
 ### Since sync is phony (and must be), these will infinitely loop (because they are included) 
 ### without MAKE_RESTARTS
@@ -58,6 +62,33 @@ rootify.d:
 filtered.d: 
 	touch $@
 endif
+endif
+
+
+## Use slightly different rules for remote host vs. not. Assume not tarred if not using remote host
+
+ifndef REMOTE_HOST
+ifndef MAKE_RESTARTS
+# This enumerates the necessary ROOT files 
+rootify.d: sync | $(ROOT_DIR) 
+	echo "# Automatically generated file. Dont' touch. " > $@
+	echo -n "rootify-event: " >> $@
+	find $(RAW_DIR) -type d -name event -printf '$(ROOT_DIR)/%P.root ' >> $@
+	echo >> $@
+	echo -n "rootify-status: " >> $@
+	find $(RAW_DIR) -type d -name status -printf '$(ROOT_DIR)/%P.root ' >> $@
+	find $(RAW_DIR) -type d -name status -printf '$(ROOT_DIR)/%P.decimated.root ' >> $@
+	echo >> $@
+	echo -n "rootify-header: " >> $@
+	find $(RAW_DIR) -type d  -name header -printf '$(ROOT_DIR)/%P.root ' >> $@
+	echo >> $@
+	echo -n "rootify-hk: " >> $@ 
+	find $(RAW_DIR)/hk -mindepth 3 -type d -printf '$(ROOT_DIR)/hk/%P.root ' >> $@
+	echo >> $@
+
+endif
+
+else #with remote host
 
 ifeq (1,${MAKE_RESTARTS}) 
 # This enumerates the necessary ROOT files 
@@ -80,9 +111,16 @@ rootify.d: extract | $(ROOT_DIR)
 	find $(RAW_DIR) -type f -name *.tar -printf '$(ROOT_DIR)/%P ' | sed 's/.tar/.root/g' >> $@
 	echo >> $@
 endif
+endif #end remote host 
 
 
-ifeq (2,${MAKE_RESTARTS})
+ifdef REMOTE_HOST
+MAKE_RESTARTS_FOR_FILTERED=2
+else
+MAKE_RESTARTS_FOR_FILTERED=1
+endif
+
+ifeq (${MAKE_RESTARTS_FOR_FILTERED},${MAKE_RESTARTS})
 filtered.d: rootify  | $(ROOT_DIR) 
 	echo "# Automatically generated file. Dont' touch. " > $@
 	echo -n "decimated-status: " >> $@
@@ -140,6 +178,9 @@ $(RAW_DIR)/%.tar: $(RAW_DIR)/%
 .PRECIOUS: $(RAW_DIR)/%.tar 
 
 #special case hk 
+
+
+#special case hk 
 $(ROOT_DIR)/hk/%.root: $(RAW_DIR)/hk/%.tar 
 	mkdir -p $(@D) 
 	tar -C $(@D) --extract -f $< 
@@ -147,6 +188,12 @@ $(ROOT_DIR)/hk/%.root: $(RAW_DIR)/hk/%.tar
 	mv $@.tmp $@ 
 	rm -rf $(@D)/$(*F)  
 	touch new_hk; 
+
+$(ROOT_DIR)/hk/%.root: $(RAW_DIR)/hk/% 
+	mkdir -p $(@D)
+	nuphaseroot-convert hk $< $@.tmp
+	mv $@.tmp $@ 
+	touch new_hk 
 
 
 
@@ -157,6 +204,12 @@ $(ROOT_DIR)/%.root: $(RAW_DIR)/%.tar
 	nuphaseroot-convert $(*F) $(@D)/$(*F) $@.tmp
 	mv $@.tmp $@ 
 	rm -rf $(@D)/$(*F)  
+
+$(ROOT_DIR)/%.root: $(RAW_DIR)/% 
+	mkdir -p $(@D)
+	nuphaseroot-convert $(*F) $< $@.tmp
+	mv $@.tmp $@ 
+
 
 
 # Rule to make decimated file 
@@ -201,13 +254,24 @@ $(HTML_DIR)/jsroot: jsroot/scripts jsroot/style
 	mkdir -p $@
 	cp -r $^ $@
 
+DEPLOY_TARGETS= rootify filtered $(HTML_DIR)/rootdata $(HTML_DIR)/index.html $(HTML_DIR)/monutor.js $(HTML_DIR)/runlist.json  $(HTML_DIR)/runlist.js $(HTML_DIR)/all_hk.root $(HTML_DIR)/jsroot $(HTML_DIR)/monutor.ico $(HTML_DIR)/monutor.png $(HTML_DIR)/KissFFT.js $(HTML_DIR)/FFT.js | $(HTML_DIR) 
 
-deploy:  extract rootify filtered $(HTML_DIR)/rootdata $(HTML_DIR)/index.html $(HTML_DIR)/monutor.js  $(HTML_DIR)/runlist.js $(HTML_DIR)/all_hk.root $(HTML_DIR)/jsroot $(HTML_DIR)/monutor.ico $(HTML_DIR)/monutor.png $(HTML_DIR)/KissFFT.js $(HTML_DIR)/FFT.js | $(HTML_DIR) 
+ifdef REMOTE_HOST
+ALL_DEPLOY_TARGETS = extract $(DEPLOY_TARGETS)
+else
+ALL_DEPLOY_TARGETS = $(DEPLOY_TARGETS)
+
+endif
+
+deploy: $(ALL_DEPLOY_TARGETS)
 	touch $@ 
 
 
 
+ifdef REMOTE_HOST
 include extract.d
+endif
+
 include rootify.d
 include filtered.d 
 
