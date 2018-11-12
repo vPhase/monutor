@@ -2,6 +2,39 @@
 var graph_colors = [30,46,28,6,7,5,4,42,41,2,3,10,49,1,33,40,37,32,29,20,21]; 
 
 
+function checkModTime(file, callback)
+{
+
+  var req = new XMLHttpRequest(); 
+  req.open("HEAD",file);
+  req.send(null); 
+  req.onload = function() 
+  {
+    if (req.status == 200) 
+    {
+      callback(req.getResponseHeader('Last-Modified'));
+    }
+    else callback(req.status); 
+  }
+}
+
+function updateRunlist() 
+{
+  var xhr = new XMLHttpRequest() ;
+  xhr.open('GET','runlist.json'); 
+  xhr.onload = function() 
+  {
+    if (xhr.status == 200) 
+    {
+      json = JSON.parse(xhr.response); 
+      runs = json.runs; 
+      document.getElementById('last_updated').innerHTML= json.last_updated; 
+    }
+  }
+  xhr.send() 
+}
+
+
 function optClear()
 {
   document.getElementById('opt').innerHTML = ""; 
@@ -30,6 +63,41 @@ function hashParams(what)
   }
 
   return pars; 
+}
+
+function iir_filter(g, b,a) 
+{
+
+  if (a == null || a.length == 0) a = [1]; 
+  if (b == null || b.length == 0) b = [1]; 
+  var yNew = new Float32Array(g.fNpoints); 
+
+
+  var inv = 1./a[0]; 
+  for (var i = 0; i < g.fNpoints; i++) 
+  {
+    var val = 0; 
+
+    for (var j = 0; j < Math.min(i+1,b.length); j++)
+    {
+      val += b[j] * g.fY[i-j]; 
+    }
+
+    for (var k = 1; k < Math.min(i+1,a.length); k++) 
+    {
+      val -= a[k] * yNew[i-k]; 
+    }
+
+    yNew[i] = val *inv; 
+
+  }
+
+//  console.log(yNew); 
+
+  for (var i = 0; i < g.fNpoints;i++) 
+  {
+    g.fY[i] = yNew[i]; 
+  }
 }
 
 
@@ -580,6 +648,15 @@ function hk()
 
 the_ffts = [];
 
+
+last_run = -1; 
+last_hd_tree = null; 
+last_ev_tree = null; 
+last_hd_modified= 0; 
+last_ev_modified = 0; 
+
+
+
 function go(i) 
 {
   var P = pages['event']; 
@@ -609,83 +686,114 @@ function go(i)
 
   window.location.hash = "event&run=" + run + "&entry=" + i; 
 
+  var load_div = document.getElementById('load'); 
   var event_file = "rootdata/run" + run + "/event.root"; 
-  document.getElementById('load').innerHTML = '<a href="'+event_file+'">Event File</a>'
+  load_div.innerHTML = '<a href="'+event_file+'">Event File</a>'
   var head_file = "rootdata/run" + run + "/header.filtered.root"; 
-  document.getElementById('load').innerHTML += ' | <a href="'+head_file+'">Filtered Head File</a>'
+  load_div.innerHTML += ' | <a href="'+head_file+'">Filtered Head File</a>'
   var full_head_file = "rootdata/run" + run + "/header.root"; 
-  document.getElementById('load').innerHTML += ' | <a href="'+full_head_file+'">Full Head File</a>'
+  load_div.innerHTML += ' | <a href="'+full_head_file+'">Full Head File</a>'
   var status_file = "rootdata/run" + run + "/status.root"; 
-  document.getElementById('load').innerHTML += ' | <a href="'+status_file+'">Status File</a>'
+  load_div.innerHTML += ' | <a href="'+status_file+'">Status File</a>'
+  load_div.innerHTML += ' | <a id="dl_link" href="data:text/csv;charset=utf-8">Event CSV</a> '
 
-  JSROOT.OpenFile(head_file, function(file) 
+  var dl_link = document.getElementById("dl_link"); 
+
+  csvContent = "data:text/csv;charset=utf-8,"; 
+
+  if (run!=last_run) 
   {
-    if (file == null) 
-    { 
-      alert("Could not open filtered file!"); 
-      return; 
-    }
+    last_hd_tree = null;
+    last_ev_tree = null;
+    last_hd_modified = "";
+    last_ev_modified = "";
+    last_run = run; 
+  }
 
-    file.ReadObject("header", function(tree) 
+
+  //closure for processing header tree
+    head_proc = function(tree) 
     {
-      if (tree.fEntries <= i) 
-      {
-        i = tree.fEntries-1; 
-        document.getElementById('evt_entry').value = i; 
-        pause(); 
-      }
+        if (tree.fEntries <= i) 
+        {
+          i = tree.fEntries-1; 
+          document.getElementById('evt_entry').value = i; 
+          pause(); 
+        }
+
+        last_hd_tree = tree; 
+
+        dl_link.setAttribute("download",run+"_"+i+".csv"); 
 
 
-      var sel = new JSROOT.TSelector(); 
+        var sel = new JSROOT.TSelector(); 
 
-      var header_vars = ["event_number","trig_number","buffer_length","pretrigger_samples","readout_time", "readout_time_ns", "trig_time","raw_approx_trigger_time","raw_approx_trigger_time_nsecs","triggered_beams","beam_power","buffer_number","gate_flag","trigger_type","sync_problem"]; 
-      for (var b = 0; b < header_vars.length; b++) 
-      {
-        sel.AddBranch("header."+header_vars[b]);     
-      }
-      
-
-      sel.Begin = function ()
-      {
-      }
-
-      sel.Process = function ()
-      { 
-        var hdrc = document.getElementById(pages['event'].canvases[0]); 
-
-        /*
-        var str = ""; 
-        //todo, format nicer 
-        
-        str += "<table>"; 
+        var header_vars = ["event_number","trig_number","buffer_length","pretrigger_samples","readout_time", "readout_time_ns", "trig_time","raw_approx_trigger_time","raw_approx_trigger_time_nsecs","triggered_beams","beam_power","buffer_number","gate_flag","trigger_type","sync_problem"]; 
         for (var b = 0; b < header_vars.length; b++) 
         {
-          if ( b % 3 == 0) str += "<tr>"; 
-          str += "<td>"+ header_vars[b] + ": </td> <td> " + this.tgtobj["header."+header_vars[b]] + "</td>"; 
-          if ( b % 3 == 2) str += "</tr>"; 
+          sel.AddBranch("header."+header_vars[b]);     
         }
-        str += "</table>"; 
-        */
-        hdrc.innerHTML = prettyPrintHeader(this.tgtobj);  
-      }; 
+        
 
-      sel.Terminate = function(res) { ; } 
+        sel.Begin = function ()
+        {
+        }
 
-      var args = { numentries: 1, firstentry : i} ;
-      tree.Process(sel, args); 
-    }); 
-  }); 
+        sel.Process = function ()
+        { 
+          var hdrc = document.getElementById(pages['event'].canvases[0]); 
 
-  JSROOT.OpenFile(event_file, function(file)  
-  {
-    if (file == null) 
-    { 
-      alert("Could not open event file!"); 
-      return; 
+          /*
+          var str = ""; 
+          //todo, format nicer 
+          
+          str += "<table>"; 
+          for (var b = 0; b < header_vars.length; b++) 
+          {
+            if ( b % 3 == 0) str += "<tr>"; 
+            str += "<td>"+ header_vars[b] + ": </td> <td> " + this.tgtobj["header."+header_vars[b]] + "</td>"; 
+            if ( b % 3 == 2) str += "</tr>"; 
+          }
+          str += "</table>"; 
+          */
+          hdrc.innerHTML = prettyPrintHeader(this.tgtobj);  
+        }; 
+
+        sel.Terminate = function(res) { ; } 
+
+        var args = { numentries: 1, firstentry : i} ;
+        tree.Process(sel, args); 
     }
 
-    file.ReadObject("event", function(tree) 
+    checkModTime(head_file, function(time)
     {
+          if (last_hd_tree && time == last_hd_modified) 
+          {
+            head_proc(last_hd_tree); 
+          }
+          else
+          {
+            last_hd_modified=time; 
+            JSROOT.OpenFile(head_file, function(file)  
+            {
+              if (file == null) 
+              { 
+                alert("Could not open event file!"); 
+                return; 
+              }
+
+              file.ReadObject("header", head_proc); 
+
+            }); 
+          }
+
+    });
+
+
+
+    ev_proc = function(tree) 
+    {
+      last_ev_tree = tree;
       if (tree.fEntries <= i) 
       {
         i = tree.fEntries-1; 
@@ -737,6 +845,27 @@ function go(i)
 
             for (var y = 0; y < N; y++) { g.fY[y]-=64; } 
 
+            if (document.getElementById('filt').checked) 
+            {
+              var As = document.getElementById('filt_A').value.split(','); 
+              var Bs = document.getElementById('filt_B').value.split(','); 
+
+              var A = []; 
+              var B = [];
+
+              for (var jj =0; jj < As.length; jj++) 
+              {
+                A[jj] = parseFloat(As[jj]) 
+              }
+              for (var jj =0; jj < Bs.length; jj++) 
+              {
+                B[jj] = parseFloat(Bs[jj]) 
+              }
+
+              iir_filter(g,B,A); 
+
+            }
+
             g.fTitle = " Evt" + ev + ", BD " + b + " , CH " + ch; 
             g.fLineColor = graph_colors[0]; 
             g.fMarkerColor = graph_colors[0]; 
@@ -762,8 +891,6 @@ function go(i)
               var sum = 0; 
               var sum2 = 0; 
 
-
-
             }
 
 
@@ -788,6 +915,8 @@ function go(i)
                 the_ffts[ii].fMarkerColor = graph_colors[ii]; 
               }
             }
+
+            csvContent += g.fY.join(",") + "\r\n"
 
             var min=64; 
             var max=-64; 
@@ -952,9 +1081,31 @@ function go(i)
 
       var args = { numentries: 1, firstentry : i} ;
       tree.Process(sel, args); 
-    }); 
+    }; 
 
-  }); 
+    checkModTime(event_file, function(time)
+        {
+          if (last_ev_tree && time == last_ev_modified) 
+          {
+            ev_proc(last_ev_tree); 
+          }
+          else
+          {
+            last_ev_modified=time; 
+            JSROOT.OpenFile(event_file, function(file)  
+            {
+              if (file == null) 
+              { 
+                alert("Could not open event file!"); 
+                return; 
+              }
+
+              file.ReadObject("event", ev_proc); 
+
+            }); 
+          }
+
+        });
 
 
 
@@ -1015,6 +1166,7 @@ function evt()
   optAppend(" Up<input type='range' value='1' min='1' max ='16' id='upsample' onchange='go(-1)' title='upsample factor'>"); 
   optAppend(" | env?<input type='checkbox' id='evt_hilbert' title='Compute Hilbert Envelope (requires spectrum))' onchange='go(-1)'>");
   optAppend(" | meas?<input type='checkbox' id='evt_measure' title='Perform measurements' onchange='go(-1)'>");
+  optAppend(" | filt?<input type='checkbox' id='filt' title='Apply filter' onchange='go(-1)'> b:<input id='filt_B' size=15 title='Filter B coeffs (Comma separated)' value='0.20657,0.41314,0.20657'> a:<input id='filt_A' title='Filter A coeffs (Comma separated)' size=15 value='1,-0.-0.36953,0.19582'>"); 
 
   var hash_params = hashParams('event'); 
   document.getElementById('evt_run').value = hash_params['run']===undefined ? runs[runs.length-1]: hash_params['run']; 
@@ -1137,5 +1289,7 @@ function monutor_load()
   {
     show(hash.substring(1).split('&')[0]); 
   }
+
+  setInterval(updateRunlist, 30e3); 
 }
 
