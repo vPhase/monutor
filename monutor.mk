@@ -35,6 +35,7 @@ ifdef REMOTE_HOST
 	rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(HEADER_DIR) $(LOCAL_DEST)/ >> $@
 else
 	echo "No need to sync" 
+
 endif
 
 ifdef REMOTE_HOST # only need to the the weird tarring thing if from a remote host
@@ -86,6 +87,8 @@ rootify.d: sync | $(ROOT_DIR)
 	find $(RAW_DIR)/hk -mindepth 3 -type d -printf '$(ROOT_DIR)/hk/%P.root ' >> $@
 	echo >> $@
 
+filtered.d: 
+	touch $@
 endif
 
 else #with remote host
@@ -222,7 +225,7 @@ $(ROOT_DIR)/%.decimated.root: $(ROOT_DIR)/%.root
 $(ROOT_DIR)/%/header.filtered.root: $(ROOT_DIR)/%/event.root $(ROOT_DIR)/%/header.root 
 	nuphaseroot-convert filtered_header $^ $@ 
 
-rootify: extract rootify.d rootify-event rootify-status rootify-header rootify-hk 
+rootify: rootify.d rootify-event rootify-status rootify-header rootify-hk 
 	touch $@ 
 
 filtered: rootify filtered.d filtered-header decimated-status
