@@ -25,13 +25,16 @@ site.cfg:
 clean: 
 	rm -f sync *.d extract rootify 
 
+startdir=$(shell pwd) 
 
 ### Copy over new files 
 sync: | $(LOCAL_DEST) 
-	#rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(STATUS_DIR) $(LOCAL_DEST)/ >> $@
-	#rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(HK_DIR) $(LOCAL_DEST)/ >> $@
-	#rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(EVENT_DIR) $(LOCAL_DEST)/ >> $@
-	#rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(HEADER_DIR) $(LOCAL_DEST)/ >> $@
+	echo "---" >> sync 
+	date >> sync
+	-ssh -x -T midway "cd $(startdir); rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(STATUS_DIR) $(LOCAL_DEST)/ >> $@"
+	-ssh -x -T midway "cd $(startdir); rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(HK_DIR) $(LOCAL_DEST)/ >> $@"
+	-ssh -x -T midway "cd $(startdir); rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(EVENT_DIR) $(LOCAL_DEST)/ >> $@"
+	-ssh -x -T midway "cd $(startdir); rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(HEADER_DIR) $(LOCAL_DEST)/ >> $@"
 
 
 ### These are responsible for generating the list of files to extract and rootify 
