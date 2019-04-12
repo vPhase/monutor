@@ -21,7 +21,7 @@ function checkModTime(file, callback)
 function updateRunlist() 
 {
   var xhr = new XMLHttpRequest() ;
-  xhr.open('GET','runlist.json'); 
+  xhr.open('GET','runlist.json?'+Date.now()); 
   xhr.onload = function() 
   {
     if (xhr.status == 200) 
@@ -103,19 +103,23 @@ function iir_filter(g, b,a)
 
 function prettyPrintHeader(vars) 
 {
-  str = ""; 
+  var str = ""; 
 
+  var isSurface = parseInt(vars["header.trigger_type"]) == 4; 
+
+  var prefix = isSurface ? "S" : ""; 
   str += "<table><tr>"; 
-  str += "<td>Event number: " + vars["header.event_number"] +"</td>"; 
-  str += "<td>Trigger number: " + vars["header.trig_number"] +"</td>"; 
-  str += "<td>Readout time (master): " + new Date(parseInt(vars["header.readout_time"][0])*1000 + parseInt(vars["header.readout_time_ns"][0])/1e6).toISOString() +"</td>"; 
+  str += "<td>Event number: " + prefix+ vars["header.event_number"] +"</td>"; 
+  str += "<td>Trigger number: " + prefix+vars["header.trig_number"] +"</td>"; 
+  if (!isSurface) str += "<td>Readout time (master): " + new Date(parseInt(vars["header.readout_time"][0])*1000 + parseInt(vars["header.readout_time_ns"][0])/1e6).toISOString() +"</td>"; 
   str += "<td>Readout time (slave): " + new Date(parseInt(vars["header.readout_time"][1])*1000 + parseInt(vars["header.readout_time_ns"][1])/1e6).toISOString() +"</td></tr>"; 
   var isRF = parseInt(vars["header.trigger_type"]) == 2; 
+  var isExt = parseInt(vars["header.trigger_type"]) == 3; 
   var isCalib = isRF && parseInt(vars["header.gate_flag"]); 
-  str += "<tr><td>Trigger type: " + ( isCalib ? "CALIB" : isRF ? "RF" : "FORCE") + "</td>"
+  str += "<tr><td>Trigger type: " + ( isCalib ? "CALIB" : isRF ? "RF" :  isSurface ? "SURFACE" : "FORCE") + "</td>"
   var triggered_beam = Math.log2(parseInt(vars["header.triggered_beams"])); 
-  str += "<td>Triggered beam: " + (isRF? triggered_beam : "N/A") +"</td>"; 
-  str += "<td>Triggered beam power: " + (isRF ? vars["header.beam_power"][triggered_beam] : "N/A") + "</td>"; 
+  if (!isSurface)  str += "<td>Triggered beam: " + (isRF? triggered_beam : "N/A") +"</td>"; 
+  if (!isSurface)  str += "<td>Triggered beam power: " + (isRF ? vars["header.beam_power"][triggered_beam] : "N/A") + "</td>"; 
   str += "<td>Raw TrigTime: " +vars["header.trig_time"]+"</td></tr>"; 
   str += "</table> "; 
     
@@ -447,6 +451,8 @@ function doDraw(page, ts, what,cut)
 //        console.log(args); 
         real_ts[it].Draw(args, function(g,indices,ignore)
         {
+          if (g == null) return; 
+
           var ii = indices[0]; 
           var jj = indices[1]; 
           var tt = indices[2]; 
@@ -548,7 +554,7 @@ function statusTreeDraw()
 
        file.ReadObject("status;1", function(tree) 
        {
-          status_trees.push(tree); 
+          status_trees.push(tree.fEntries > 0 ? tree : null); 
           appendLoading("+"); 
           if (status_trees.length == files_to_load.length) 
           {
@@ -655,6 +661,7 @@ last_ev_tree = null;
 last_hd_modified= 0; 
 last_ev_modified = 0; 
 
+max_nwf = 0; 
 
 
 function go(i) 
@@ -806,6 +813,7 @@ function go(i)
       sel.AddBranch("event.event_number"); 
       sel.AddBranch("event.raw_data"); 
       sel.AddBranch("event.buffer_length"); 
+      sel.AddBranch("event.board_id"); 
 
       sel.Begin = function (){ }  ; 
       sel.Process = function ()
@@ -813,6 +821,9 @@ function go(i)
         var data = this.tgtobj['event.raw_data']; 
         var ev = this.tgtobj['event.event_number']; 
         var N = this.tgtobj['event.buffer_length']; 
+        var bid = this.tgtobj['event.board_id']; 
+
+        var isSurface = bid[0] == 0 && bid[1] > 0; 
 
         var X = []; 
         var ii = 0; 
@@ -824,22 +835,30 @@ function go(i)
         var upsample = document.getElementById('upsample').value; 
         var autoscale = document.getElementById('evt_autoscale').checked; 
 
+        //make canvases for the max number of waveforms; 
+        if (P.canvases.length < 17) 
+        {
+          for (var i = 0; i < 16; i++) 
+          {
+            var c = addCanvas(pages['event'],"canvas_small",false); 
+            document.getElementById(c).style.display= 'none' ;
+            document.getElementById(c).innerHTML="";
+
+          }
+        }
+
         for (var b = 0; b < data.length; b++)
         {
+          if (bid[b] == 0) continue; 
           for (var ch = 0; ch < data[b].length; ch++)
           {
             if (!arrNonZero(data[b][ch])) continue; 
-            var c =""; 
 
-            if (P.canvases.length < ii+2) 
-            {
-             c = addCanvas(pages['event'],"canvas_small",false) ;
-            }
-            else
-            { 
-              c = P.canvases[ii+1]; 
-              JSROOT.cleanup(c); 
-            }
+            var c = P.canvases[ii+1]; 
+            if (document.getElementById(c).innerHTML!="")JSROOT.cleanup(c); 
+
+            //make sure it's not hidden 
+            document.getElementById(c).style.display= 'block' ;
 
             var g= JSROOT.CreateTGraph(N, X, data[b][ch]); 
 
@@ -866,7 +885,7 @@ function go(i)
 
             }
 
-            g.fTitle = " Evt" + ev + ", BD " + b + " , CH " + ch; 
+            g.fTitle = " Evt" + (isSurface ? "S":"") + ev + ", BD " + b + " , CH " + ch; 
             g.fLineColor = graph_colors[0]; 
             g.fMarkerColor = graph_colors[0]; 
             g.InvertBit(JSROOT.BIT(18)); 
@@ -1019,19 +1038,24 @@ function go(i)
             ii++; 
           }
         }
+        for (var i = ii; i < 16; i++) 
+        {
+            document.getElementById(P.canvases[i+1]).style.display='none' ;
+        }
+
       }; 
 
       sel.Terminate = function(res) 
       { 
         if (document.getElementById('evt_fft').checked) 
         {
-          if (P.canvases.length <= the_ffts.length+1) 
+          if (P.canvases.length < 18) 
           {
             c = addCanvas(P,'canvas_med',false); 
           }
           else
           {
-            c = P.canvases[the_ffts.length+1]; 
+            c = P.canvases[17]; 
             document.getElementById(c).style.display = 'block'; 
             JSROOT.cleanup(c); 
           }
@@ -1054,6 +1078,7 @@ function go(i)
           histo.fYaxis.fTitle = "db ish"; 
           setGraphHistStyle(histo); 
           mg.fHistogram = histo; 
+          dl_link.setAttribute("href",encodeURI(csvContent)); 
  
           JSROOT.draw(c, mg, "ALP", function (painter) 
           {
@@ -1072,9 +1097,9 @@ function go(i)
         else
         {
 
-          if (P.canvases.length > the_ffts.length+1)
+          if (P.canvases.length >17)
           {
-            document.getElementById(P.canvases[the_ffts.length+1]).style.display = 'none'; 
+            document.getElementById(P.canvases[17]).style.display = 'none'; 
           }
         }
       }
@@ -1149,8 +1174,8 @@ function start()
 
 function evt() 
 {
-  optAppend("Run: <input id='evt_run' size=20> "); 
-  optAppend("Entry: <input id='evt_entry' value='0' size=20> "); 
+  optAppend("Run: <input id='evt_run' size=10> "); 
+  optAppend("Entry: <input id='evt_entry' value='0' size=10> "); 
   optAppend("<input type='button' value='Go' onClick='go(-1)'>"); 
   optAppend(" | <input type='button' value='&#x22A2;' onClick='go(0)' title='Go to first event'>"); 
   optAppend("<input type='button' value='&larr;' onClick='previous()' title='Previous event'>"); 
@@ -1190,6 +1215,13 @@ function stat()
   global_scalers += "|||status.readout_time+status.readout_time_ns*1e-9:status.global_scalers[0]/10";
   global_scalers += ";;;xtitle:time;title:Global Scalers;ytitle:Hz;xtime:1;labels:Fast,Slow Gated,Slow"
 
+  var surface_scalers= "status.readout_time+status.readout_time_ns*1e-9:status.surface_scalers[2]";
+  surface_scalers += "|||status.readout_time+status.readout_time_ns*1e-9:status.surface_scalers[1]/10";
+  surface_scalers += "|||status.readout_time+status.readout_time_ns*1e-9:status.surface_scalers[0]/10";
+  surface_scalers += ";;;xtitle:time;title:Surface Scalers;ytitle:Hz;xtime:1;labels:Fast,Slow Gated,Slow"
+
+
+
   var beam_scalers = ""; 
   for (var i = 0; i <15; i++)
   {
@@ -1216,7 +1248,7 @@ function stat()
     beam_thresholds+="Beam "+i; 
   }
 
-  optAppend("<textarea id='plot_status' cols=160 rows=5>"+global_scalers+"\n"+beam_scalers+"\n"+beam_thresholds+"</textarea>");
+  optAppend("<textarea id='plot_status' cols=160 rows=5>"+global_scalers+"\n"+beam_scalers+"\n"+beam_thresholds+"\n"+surface_scalers+"</textarea>");
   optAppend("<br><input type='button' onClick='return statusTreeDraw()' value='Draw'>"); 
 
   var hash_params = hashParams('status'); 
