@@ -101,7 +101,7 @@
       <a href="#hk" onClick="return show('hk')">hk</a> | 
       <a href="#status" onClick="return show('status')">status</a> | 
       <a href="#event" onClick="return show('event')">events</a> | 
-      <small>Last updated <span id="last_updated"></span>. <small>[<a href="https://github.com/vPhase/monutor">code</a>][<a href="https://github.com/vPhase/monutor/issues">report a bug</a>]</small> </small>
+      <small>Last updated <span id="last_updated"></span>. <small>[<a href="https://github.com/vPhase/monutor">code</a>][<a href="https://github.com/vPhase/monutor/issues">report a bug</a>][<a href="|||RUNLOG_LINK|||">runlog</a>]</small> </small>
    </p>
 
 

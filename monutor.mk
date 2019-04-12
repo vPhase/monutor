@@ -280,6 +280,14 @@ $(HTML_DIR)/jsroot: jsroot/scripts jsroot/style
 	mkdir -p $@
 	cp -r $^ $@
 
+
+
+RUNLOG_LINK?=javascript:alert('Not configured. Set RUNLOG_LINK appropriately.') 
+
+html/index.html: html/index.html.in site.cfg
+	cp $< $@
+	sed  -i 's^|||RUNLOG_LINK|||^$(RUNLOG_LINK)^g' $@
+
 DEPLOY_TARGETS= rootify filtered $(HTML_DIR)/rootdata $(HTML_DIR)/index.html $(HTML_DIR)/monutor.js  $(HTML_DIR)/runlist.js $(HTML_DIR)/runlist.json \
 								$(HTML_DIR)/all_hk.root $(HTML_DIR)/jsroot $(HTML_DIR)/monutor.ico $(HTML_DIR)/monutor.png $(HTML_DIR)/KissFFT.js $(HTML_DIR)/FFT.js 
 
