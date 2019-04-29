@@ -280,16 +280,20 @@ $(HTML_DIR)/jsroot: jsroot/scripts jsroot/style
 	mkdir -p $@
 	cp -r $^ $@
 
+$(HTML_DIR)/rfjs: rfjs/rf.js rfjs/FFT.js rfjs/KissFFT.js 
+	mkdir -p $@
+	cp -r $^ $@
+
 
 
 RUNLOG_LINK?=javascript:alert('Not configured. Set RUNLOG_LINK appropriately.') 
 
-html/index.html: html/index.html.in site.cfg
+$(HTML_DIR)/index.html: html/index.html.in site.cfg
 	cp $< $@
 	sed  -i 's^|||RUNLOG_LINK|||^$(RUNLOG_LINK)^g' $@
 
 DEPLOY_TARGETS= rootify filtered $(HTML_DIR)/rootdata $(HTML_DIR)/index.html $(HTML_DIR)/monutor.js  $(HTML_DIR)/runlist.js $(HTML_DIR)/runlist.json \
-								$(HTML_DIR)/all_hk.root $(HTML_DIR)/jsroot $(HTML_DIR)/monutor.ico $(HTML_DIR)/monutor.png $(HTML_DIR)/KissFFT.js $(HTML_DIR)/FFT.js 
+								$(HTML_DIR)/all_hk.root $(HTML_DIR)/jsroot $(HTML_DIR)/monutor.ico $(HTML_DIR)/monutor.png $(HTML_DIR)/rfjs 
 
 ifdef REMOTE_HOST
 ALL_DEPLOY_TARGETS = extract $(DEPLOY_TARGETS)
