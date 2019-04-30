@@ -1,5 +1,36 @@
-
 var graph_colors = [30,46,28,6,7,5,4,42,41,2,3,10,49,1,33,40,37,32,29,20,21]; 
+
+function closeOverlay() 
+{
+  var overlay = document.getElementById("overlay"); 
+  overlay.style.display = 'none'; 
+  JSROOT.cleanup("overlay_c"); 
+}
+
+function showOverlay(title='Overlay Window')
+{
+  var overlay = document.getElementById("overlay"); 
+
+  document.getElementById('overlay_title').innerHTML=title; 
+  if (overlay.style.display == 'block')
+  {
+    JSROOT.cleanup("overlay_c"); 
+  }
+
+  overlay.style.display = 'block'; 
+  return overlay; 
+}
+
+function showMapConfig() 
+{
+  document.getElementById("mapconfig").style.display='block'
+}
+
+function hideMapConfig() 
+{
+  go(-1); 
+  document.getElementById("mapconfig").style.display='none'
+}
 
 
 function checkModTime(file, callback)
@@ -65,40 +96,6 @@ function hashParams(what)
   return pars; 
 }
 
-function iir_filter(g, b,a) 
-{
-
-  if (a == null || a.length == 0) a = [1]; 
-  if (b == null || b.length == 0) b = [1]; 
-  var yNew = new Float32Array(g.fNpoints); 
-
-
-  var inv = 1./a[0]; 
-  for (var i = 0; i < g.fNpoints; i++) 
-  {
-    var val = 0; 
-
-    for (var j = 0; j < Math.min(i+1,b.length); j++)
-    {
-      val += b[j] * g.fY[i-j]; 
-    }
-
-    for (var k = 1; k < Math.min(i+1,a.length); k++) 
-    {
-      val -= a[k] * yNew[i-k]; 
-    }
-
-    yNew[i] = val *inv; 
-
-  }
-
-//  console.log(yNew); 
-
-  for (var i = 0; i < g.fNpoints;i++) 
-  {
-    g.fY[i] = yNew[i]; 
-  }
-}
 
 
 function prettyPrintHeader(vars) 
@@ -165,69 +162,16 @@ function getFFT(size)
 /** Gets the power spectrum of a TGraph, returning as a TGraph. Optionally will upsample in fourier space */ 
 function spec(g, upsample=1, envelope = null) 
 {
-  var N = g.fX.length;
-  var fft = getFFT(N); 
-  var Y = fft.forward(g.fY); 
-  var dt = g.fX[1] - g.fX[0]; 
-  var df = 1./(N * dt); 
-  var t0 = g.fX[0]; 
-  var f = []; 
-  var P = []; 
-  for (var i = 0; i < N/2+1; i++)
-  {
-    f.push(i*df); 
-    var p = (Y[2*i]*Y[2*i] + Y[2*i+1]*Y[2*i+1]) / N; 
-    if (i > 0 || i < N/2) p*=2; 
-    P.push(10*Math.log10(p)); 
-  }
-
-  var G = JSROOT.CreateTGraph(N/2+1, f,P); 
-  G.fName = g.fName + "_power"; 
-  G.fTitle = g.fTitle.substring(g.fTitle.indexOf(',')+1); 
-
-  upsample = Math.round(upsample); 
-
-  var Yp = null;
-
-
-  if (upsample > 1) 
-  {
-    var newY = new Float32Array( 2*((upsample * N)/2 + 1)); 
-    for (var i = 0; i < 2*(N/2 + 1); i++) newY[i] = Y[i]/N; 
-    var fftU = getFFT(upsample * N); 
-    g.fNpoints = upsample*N; 
-    g.fY = fftU.inverse(newY); 
-    for (var i = 0; i < N*upsample; i++) 
-    {
-      g.fX[i] = dt/upsample *i + t0; 
-    }
-    delete newY; 
-  }
+  var Y = RF.upsample(g,upsample); 
+  var G = RF.makePowerSpectrum(g, Y); 
 
   if (envelope != null) 
   {
-    var Yp = new Float32Array( 2*((upsample*N)/2+1)); 
-    for (var i = 1; i < N/2; i++)
-    {
-      Yp[2*i] = -Y[2*i+1] / N; 
-      Yp[2*i+1] = Y[2*i] / N; 
-    }
-
-    var fftH = getFFT(upsample * N); 
-    var yp = fftH.inverse(Yp); 
-    envelope.fNpoints = N*upsample;; 
-
-    for (var i = 0; i < N*upsample; i++)
-    {
-      envelope.fX[i] = dt/upsample * i + t0; 
-      envelope.fY[i] = Math.sqrt( g.fY[i] * g.fY[i] + yp[i] * yp[i]); 
-    }
+    RF.hilbertEnvelope(g, Y, null, envelope);
   }
 
-  G.InvertBit(JSROOT.BIT(18)); 
   return G; 
 }
-
 
 
 
@@ -246,6 +190,7 @@ function setGraphHistStyle(histo)
     histo.fYaxis.fLabelColor = 30; 
     histo.fYaxis.fAxisColor = 11; 
     histo.fXaxis.fAxisColor = 11; 
+    histo.fLineColor = graph_colors[0]; 
     histo.fBits = histo.fBits | JSROOT.TH1StatusBits.kNoStats;
 }
 
@@ -664,15 +609,191 @@ last_ev_modified = 0;
 max_nwf = 0; 
 
 
+
+setup_evt_canvases = false;
+first_time = true; 
+first_int = true; 
+first_fft = true; 
+
+
+var zs = [ -3.98,-5.00,-6.02,-7.03,-8.07,-10.11,-12.135 ];
+var refr_index = 1.78; 
+
+mapper = RF.ElevationMapper(zs,0.3/refr_index); 
+map = new RF.InterferometricMap(mapper,180,-90,90); 
+int_graphs = []; 
+
+function setOffsets() 
+{
+  var slope = parseFloat(document.getElementById('delay').value);
+  for (var i = 0; i < 7; i++) 
+  {
+    if (int_graphs[i] !=null) 
+    {
+      var shift_amount = parseFloat(document.getElementById('l'+i).value) *slope;
+      console.log(i,shift_amount); 
+      RF.shiftTimes(int_graphs[i], shift_amount); 
+    }
+  }
+}
+ 
+
+function xcorr_style(g) 
+{
+  g.fLineColor = graph_colors[0]; 
+  g.fMarkerColor = graph_colors[0]; 
+}
+
+function show_xcorrs() 
+{
+  showOverlay(" [ Phased Array XCorrs]"); 
+  JSROOT.AssertPrerequisites("hierarchy", function() 
+  {
+   map.drawXCorrs("overlay_c", xcorr_style,20,20,""); 
+  });
+}
+
+function drawCoherent(theta,where) 
+{
+      console.log("coh: " + theta); 
+      //make calculate the dts 
+
+      var graphs= []; 
+      var flip_map =document.getElementById('map_flip').checked; 
+      var sign = 1; 
+      if (flip_map) sign =-1;
+
+
+      var first = 0; 
+      var times = []; 
+      var names = []; 
+      for (var i = 0; i < int_graphs.length; i++) 
+      {
+        if (int_graphs[i] != null) 
+        {
+          graphs.push(int_graphs[i]); 
+          names.push("Ant " + i); 
+          if (times.length == 0) 
+          {
+            first = i; 
+          }
+
+          times.push(first == i ? 0 : sign*mapper.deltaTs(i,first,theta)); 
+        }
+      }
+
+      if (graphs.length <= 0) return; 
+
+      if (document.getElementById("click_coh").checked) 
+      {
+        var g= RF.coherentSum(graphs,times); 
+        g.fTitle = "Coherent, #theta =" + theta + ";ns;sum adu";
+        g.fLineColor = graph_colors[0]; 
+        g.fMarkerColor = graph_colors[0]; 
+
+
+        JSROOT.draw(where,g, "alp", 
+            function(p) 
+            {
+              p.root_pad().fGridx = 1; 
+              p.root_pad().fGridy = 1; 
+              var hist = g.fHistogram; 
+              setGraphHistStyle(hist); 
+              JSROOT.redraw(p.divid,hist,""); 
+              var tpainter = p.FindPainterFor(null,"title"); 
+              var pavetext = tpainter.GetObject(); 
+              pavetext.fTextColor = 31; 
+              tpainter.Redraw(); 
+ 
+            });
+      }
+      else
+      {
+        
+        make_shifted_copy = function(raw_graphs, times, names,upsample = 3) 
+        {
+          var out = []; 
+          for (var i = 0; i < raw_graphs.length; i++) 
+          {
+            var gg = JSROOT.CreateTGraph(raw_graphs[i].fNpoints, raw_graphs[i].fX.slice(0), raw_graphs[i].fY.slice(0)); 
+            RF.upsample(gg, upsample+1); 
+            RF.shiftTimes(gg, times[i]); 
+            gg.fTitle = names[i]; 
+            gg.fLineColor = graph_colors[i];
+            gg.fMarkerColor = graph_colors[i]; 
+            gg.InvertBit(JSROOT.BIT(18)); 
+            out.push(gg); 
+          }
+          return out;
+        }
+
+        var shift_graphs = make_shifted_copy(graphs,times,names);
+
+
+        var mg = JSROOT.CreateTMultiGraph.apply(0,shift_graphs);
+
+        mg.fTitle = "Individual #theta = "+ theta ;
+        JSROOT.draw(where,mg, "alp", 
+            function(p) 
+            {
+              var hist = p.firstpainter.GetHisto(); 
+              setGraphHistStyle(hist); 
+              hist.fXaxis.fTitle="ns"
+              hist.fYaxis.fTitle="adu"
+              var tpainter = p.FindPainterFor(null,"title"); 
+              var pavetext = tpainter.GetObject(); 
+              pavetext.fTextColor = 31; 
+              tpainter.Redraw(); 
+ 
+
+              p.root_pad().fGridx = 1; 
+              p.root_pad().fGridy = 1; 
+              JSROOT.redraw(p.divid,hist,"", function(p)
+                  {
+                    var leg = makeLegend(0.7,1,0.9,1, shift_graphs); 
+                    JSROOT.draw(p.divid,leg,"same"); 
+                  });
+            });
+      }
+}
+
+
+
 function go(i) 
 {
   var P = pages['event']; 
    
-  if (P.canvases.length < 1) 
-  {
-    addCanvas(P,"canvas_short",false); 
-  }
+  // set up all the canvases 
 
+  var spec_c = 1;
+  var map_c = 2; 
+  var coh_c = 3; 
+  var evt_offset =4; 
+
+
+  if (!setup_evt_canvases) 
+  {
+    //top bar
+    addCanvas(P,"canvas_short",false); 
+
+    //power spectrum 
+    addCanvas(P,"canvas_med",false); 
+
+    //map
+    addCanvas(P,"canvas_small",false); 
+    //coh
+    addCanvas(P,"canvas_small",false); 
+
+    for (var ii = 0; ii < 16; ii++) 
+    {
+      var c = addCanvas(pages['event'],"canvas_small",false); 
+      document.getElementById(c).style.display= 'none' ;
+      document.getElementById(c).innerHTML="";
+
+    }
+
+    setup_evt_canvases= true; 
+  }
 
   if (i < 0)
   {
@@ -750,19 +871,6 @@ function go(i)
         { 
           var hdrc = document.getElementById(pages['event'].canvases[0]); 
 
-          /*
-          var str = ""; 
-          //todo, format nicer 
-          
-          str += "<table>"; 
-          for (var b = 0; b < header_vars.length; b++) 
-          {
-            if ( b % 3 == 0) str += "<tr>"; 
-            str += "<td>"+ header_vars[b] + ": </td> <td> " + this.tgtobj["header."+header_vars[b]] + "</td>"; 
-            if ( b % 3 == 2) str += "</tr>"; 
-          }
-          str += "</table>"; 
-          */
           hdrc.innerHTML = prettyPrintHeader(this.tgtobj);  
         }; 
 
@@ -795,6 +903,16 @@ function go(i)
           }
 
     });
+
+
+    doDrawCoherent = function(info) 
+    {
+      var binx = info.bin; 
+      var clicked = info.obj; 
+      var x = clicked.fXaxis.GetBinCenter(binx);
+      JSROOT.cleanup(P.canvases[coh_c]); 
+      drawCoherent(x, P.canvases[coh_c]); 
+    }
 
 
 
@@ -830,22 +948,12 @@ function go(i)
         for (var x = 0; x < N; x++) { X.push(x/1.5) }; 
         var do_fft = document.getElementById('evt_fft').checked; 
         var do_envelope = document.getElementById('evt_hilbert').checked; 
+        var need_envelope = document.getElementById('map_env').checked; 
         var do_measure = document.getElementById('evt_measure').checked; 
         var do_avg = document.getElementById('avg_fft').checked; 
         var upsample = document.getElementById('upsample').value; 
         var autoscale = document.getElementById('evt_autoscale').checked; 
 
-        //make canvases for the max number of waveforms; 
-        if (P.canvases.length < 17) 
-        {
-          for (var i = 0; i < 16; i++) 
-          {
-            var c = addCanvas(pages['event'],"canvas_small",false); 
-            document.getElementById(c).style.display= 'none' ;
-            document.getElementById(c).innerHTML="";
-
-          }
-        }
 
         for (var b = 0; b < data.length; b++)
         {
@@ -854,8 +962,8 @@ function go(i)
           {
             if (!arrNonZero(data[b][ch])) continue; 
 
-            var c = P.canvases[ii+1]; 
-            if (document.getElementById(c).innerHTML!="")JSROOT.cleanup(c); 
+            var c = P.canvases[ii+evt_offset]; 
+            if (!first_time) JSROOT.cleanup(c); 
 
             //make sure it's not hidden 
             document.getElementById(c).style.display= 'block' ;
@@ -881,7 +989,7 @@ function go(i)
                 B[jj] = parseFloat(Bs[jj]) 
               }
 
-              iir_filter(g,B,A); 
+              RF.IIRFilter(g,B,A); 
 
             }
 
@@ -893,7 +1001,7 @@ function go(i)
 
             env = null; 
 
-            if (do_envelope && do_fft) 
+            if (do_envelope || need_envelope) 
             {
               env = JSROOT.CreateTGraph(0,[],[]); 
               env.fLineColor = graph_colors[4]; 
@@ -913,10 +1021,10 @@ function go(i)
             }
 
 
-            if (do_fft) 
+            if (do_fft || need_envelope || do_envelope) 
             {
-              var fft =  spec(g,upsample, do_envelope ? env : null); 
-              if (do_avg && navg > 0) 
+              var fft =  spec(g,upsample, do_envelope || need_envelope ? env : null); 
+              if (do_fft && do_avg && navg > 0) 
               {
                  if (ii ==0) navg++; 
 
@@ -926,7 +1034,7 @@ function go(i)
                  }
 
               }
-              else
+              else if (do_fft) 
               {
                 navg = do_avg ? 1 : 0; 
                 the_ffts[ii] =fft; 
@@ -1025,7 +1133,7 @@ function go(i)
                   }
                 }); 
 
-            if (do_envelope && do_fft) 
+            if (do_envelope) 
             {
               JSROOT.draw(c,env, "LSAME"); 
             }
@@ -1040,25 +1148,144 @@ function go(i)
         }
         for (var i = ii; i < 16; i++) 
         {
-            document.getElementById(P.canvases[i+1]).style.display='none' ;
+            document.getElementById(P.canvases[i+evt_offset]).style.display='none' ;
         }
 
       }; 
 
       sel.Terminate = function(res) 
       { 
-        if (document.getElementById('evt_fft').checked) 
+
+        if (document.getElementById('map').checked && P.graphs.length > 16) 
         {
-          if (P.canvases.length < 18) 
+
+          document.getElementById(P.canvases[map_c]).style.display = 'block'; 
+          document.getElementById(P.canvases[coh_c]).style.display = 'block'; 
+
+
+          var check_n = parseFloat(document.getElementById('refr').value); 
+
+          var need_to_remake_mapper = (check_n != refr_index); 
+          //see if we need a new map
+          var check_zs = new Array(7)
+          for (var ii = 0; ii < 7; ii++) 
           {
-            c = addCanvas(P,'canvas_med',false); 
+            check_zs[ii] = parseFloat(document.getElementById('z'+ii).value); 
+            if (check_zs[ii]!=zs[ii]) need_to_remake_mapper = true; 
+          }
+
+
+
+          if (need_to_remake_mapper) 
+          {
+            zs = check_zs; 
+            refr_index = check_n; 
+
+            mapper = RF.ElevationMapper(zs,0.3/refr_index); 
+            map = new RF.InterferometricMap(mapper,180,-90,90); 
+
+          }
+
+
+          if (document.getElementById('map_crop').checked)
+          {
+            map.setTimeRange(
+                parseFloat(document.getElementById('map_tmin').value), 
+                parseFloat(document.getElementById('map_tmax').value) ); 
           }
           else
           {
-            c = P.canvases[17]; 
-            document.getElementById(c).style.display = 'block'; 
-            JSROOT.cleanup(c); 
+            map.unsetTimeRange();
           }
+
+          map.setFreqRange(parseFloat(document.getElementById("map_fmin").value),
+                           parseFloat(document.getElementById("map_fmax").value));
+
+          var mask = parseInt(document.getElementById('map_mask').value); 
+          console.log(mask); 
+
+
+          int_graphs = new Array(7);
+          for (var ii = 0; ii < 7; ii++)
+          {
+            if (mask & (1 <<ii))
+            {
+              var real_i = ii>4 ? ii+1 : ii; 
+
+              var g = P.graphs[2*real_i]; 
+              if (document.getElementById('map_env').checked )
+              {
+                g = P.graphs[2*real_i+1];
+              }
+
+              int_graphs[ii] = JSROOT.CreateTGraph(g.fNpoints, g.fX, g.fY); 
+
+            }
+            else
+            {
+              int_graphs[ii] = null; 
+
+            }
+
+          }
+
+          var avg_map =document.getElementById('map_avg').checked; 
+          setOffsets(); 
+          var flip_map =document.getElementById('map_flip').checked; 
+          map.compute(int_graphs,avg_map,flip_map); 
+          var base_name = "Elevation Map"; 
+          if (document.getElementById('map_env').checked) base_name += (" (enveloped)"); 
+          map.setTitle(avg_map ? base_name + "(navgs=" + map.navg+")" : base_name,"elevation (deg)","Average Correlation"); 
+          if (first_int) 
+          {
+            first_int = false; 
+          }
+          else
+          {
+            JSROOT.cleanup(P.canvases[map_c]);
+            JSROOT.cleanup(P.canvases[coh_c]);
+          }
+
+          setGraphHistStyle(map.hist); 
+          map.hist.fFillColor = graph_colors[0]; 
+
+          var int_fn = function(painter) 
+          {
+                painter.ConfigureUserClickHandler(doDrawCoherent); 
+                var tpainter = painter.FindPainterFor(null,"title"); 
+                var pavetext = tpainter.GetObject(); 
+                pavetext.fTextColor = 31; 
+                tpainter.Redraw(); 
+ 
+          }
+
+          JSROOT.draw(P.canvases[map_c], map.hist,"hist",int_fn); 
+
+          //find the maximum bin 
+          var max = map.getMaxes(); 
+          var coh = drawCoherent(max[0].x, P.canvases[coh_c]); 
+
+        }
+        else
+        { 
+          if (!first_int)
+          {
+            JSROOT.cleanup(P.canvases[map_c]);
+          }
+
+          document.getElementById(P.canvases[map_c]).style.display = 'none'; 
+          document.getElementById(P.canvases[coh_c]).style.display = 'none'; 
+
+        }
+
+
+        if (document.getElementById('evt_fft').checked) 
+        {
+
+          c = P.canvases[spec_c]; 
+          document.getElementById(c).style.display = 'block'; 
+          if (!first_fft) JSROOT.cleanup(c); 
+          
 
           var mg = JSROOT.CreateTMultiGraph.apply(0, the_ffts); 
           P.multigraphs[0] = mg; 
@@ -1093,15 +1320,15 @@ function go(i)
                 JSROOT.draw(painter.divid,leg);
                 P.legends[0] = leg; 
            }); 
+
+          first_fft = false; 
          }
         else
         {
-
-          if (P.canvases.length >17)
-          {
-            document.getElementById(P.canvases[17]).style.display = 'none'; 
-          }
+            document.getElementById(P.canvases[spec_c]).style.display = 'none'; 
         }
+        first_time = false; 
+
       }
 
       var args = { numentries: 1, firstentry : i} ;
@@ -1137,6 +1364,7 @@ function go(i)
 
 
 }
+
 
 function previous() 
 {
@@ -1174,29 +1402,37 @@ function start()
 
 function evt() 
 {
-  optAppend("Run: <input id='evt_run' size=10> "); 
-  optAppend("Entry: <input id='evt_entry' value='0' size=10> "); 
-  optAppend("<input type='button' value='Go' onClick='go(-1)'>"); 
+  optAppend("R: <input id='evt_run' size=5 onchange='go(-1)'> "); 
+  optAppend("E: <input id='evt_entry' value='0' size=7 onchange='go(-1)'> "); 
   optAppend(" | <input type='button' value='&#x22A2;' onClick='go(0)' title='Go to first event'>"); 
   optAppend("<input type='button' value='&larr;' onClick='previous()' title='Previous event'>"); 
   optAppend("<input type='button' id='pause_button' value='&#x25a0;' onClick='pause()' disabled title='Pause playing'>"); 
   optAppend("<input type='button' id='play_button' value='&#x25b6;' onClick='start()' title='Play through events'>"); 
   optAppend("<input type='button' value='&rarr;' onClick='next()' title='Next event'>"); 
   optAppend("<input type='button' value='&#x22A3;' onClick='go(100000000)' title='Last event'>"); 
-  optAppend(" &Delta;t<sub>&#x25b6;</sub>:<input type='range' value='500' min='50' max='5000' id='play_speed' size=30' title='Play speed' >"); 
-  optAppend(" | Z: <input type='range' value='40' min='4' max='64' id='evt_zoom' title='Manual scale' size=30 onchange='go(-1)'> "); 
+  optAppend(" &Delta;t<sub>&#x25b6;</sub>:<input type='range'class='slider'  value='500' min='50' max='5000' id='play_speed' size=15 title='Play speed' >"); 
+  optAppend(" | Z: <input type='range' class='slider' value='40' min='4' max='80' id='evt_zoom' title='Manual scale' size=15 onchange='go(-1)'> "); 
   optAppend(" auto<input type='checkbox' id='evt_autoscale' onchange='go(-1)'>"); 
   optAppend(" | spec?<input type='checkbox' id='evt_fft' checked title='Compute power spectrum (necessary for upsampling)' onchange='go(-1)'>");
   optAppend("avg?<input type='checkbox' id='avg_fft' title='Check to average fft's (uncheck to reset)' onchange='go(-1)'>");
-  optAppend(" Up<input type='range' value='1' min='1' max ='16' id='upsample' onchange='go(-1)' title='upsample factor'>"); 
+  optAppend(" Up<input type='range' class='slider'  value='1' min='1' max ='16' id='upsample' onchange='go(-1)' title='upsample factor'>"); 
   optAppend(" | env?<input type='checkbox' id='evt_hilbert' title='Compute Hilbert Envelope (requires spectrum))' onchange='go(-1)'>");
   optAppend(" | meas?<input type='checkbox' id='evt_measure' title='Perform measurements' onchange='go(-1)'>");
   optAppend(" | filt?<input type='checkbox' id='filt' title='Apply filter' onchange='go(-1)'> b:<input id='filt_B' size=15 title='Filter B coeffs (Comma separated)' value='0.20657,0.41314,0.20657'> a:<input id='filt_A' title='Filter A coeffs (Comma separated)' size=15 value='1,-0.-0.36953,0.19582'>"); 
+  optAppend(" | map?<input type='checkbox' checked id='map' title='Do interferometric map' onchange='go(-1)'> avg? <input id='map_avg' type='checkbox' onchange='go(-1)'>");
+  optAppend(" <input id='showcfg' type='button' value='cfg' title='configure maps' onclick='showMapConfig()'>"); 
+  optAppend("  <input id='xc_button' type='button' value='xc'title='show xcorrs' onclick='show_xcorrs()' > "); 
+  optAppend(" coh: <input id='click_coh' type=checkbox title='Show coherent waveforms when clicking on map' size=5 checked onchange='go(-1)'>"); 
+
 
   var hash_params = hashParams('event'); 
+  console.log(document.getElementById('evt_entry').value); 
   document.getElementById('evt_run').value = hash_params['run']===undefined ? runs[runs.length-1]: hash_params['run']; 
   document.getElementById('evt_entry').value = hash_params['entry']===undefined ? '0' : hash_params['entry']; 
+  console.log(document.getElementById('evt_entry').value); 
+  console.log(hash_params); 
   go(-1); 
+  console.log(document.getElementById('evt_entry').value); 
 }
 
 
