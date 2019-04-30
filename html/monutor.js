@@ -658,35 +658,11 @@ function drawCoherent(theta,where)
       console.log("coh: " + theta); 
       //make calculate the dts 
 
-      var graphs= []; 
-      var flip_map =document.getElementById('map_flip').checked; 
-      var sign = 1; 
-      if (flip_map) sign =-1;
-
-
-      var first = 0; 
-      var times = []; 
-      var names = []; 
-      for (var i = 0; i < int_graphs.length; i++) 
-      {
-        if (int_graphs[i] != null) 
-        {
-          graphs.push(int_graphs[i]); 
-          names.push("Ant " + i); 
-          if (times.length == 0) 
-          {
-            first = i; 
-          }
-
-          times.push(first == i ? 0 : sign*mapper.deltaTs(i,first,theta)); 
-        }
-      }
-
-      if (graphs.length <= 0) return; 
 
       if (document.getElementById("click_coh").checked) 
       {
-        var g= RF.coherentSum(graphs,times); 
+        var g= mapper.coherentSum(int_graphs,[theta],flip_map); 
+        if (g == null) return; 
         g.fTitle = "Coherent, #theta =" + theta + ";ns;sum adu";
         g.fLineColor = graph_colors[0]; 
         g.fMarkerColor = graph_colors[0]; 
@@ -710,6 +686,32 @@ function drawCoherent(theta,where)
       else
       {
         
+        var graphs= []; 
+        var flip_map =document.getElementById('map_flip').checked; 
+        var sign = 1; 
+        if (flip_map) sign =-1;
+
+
+        var first = 0; 
+        var times = []; 
+        var names = []; 
+        for (var i = 0; i < int_graphs.length; i++) 
+        {
+          if (int_graphs[i] != null) 
+          {
+            graphs.push(int_graphs[i]); 
+            names.push("Ant " + i); 
+            if (times.length == 0) 
+            {
+              first = i; 
+            }
+
+            times.push(first == i ? 0 : sign*mapper.deltaTs(i,first,theta)); 
+          }
+        }
+
+
+        if (graphs.length <= 0) return; 
         make_shifted_copy = function(raw_graphs, times, names,upsample = 3) 
         {
           var out = []; 

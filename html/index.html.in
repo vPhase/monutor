@@ -159,10 +159,9 @@
       <p>Channel Mask:<input id='map_mask' value='127' size=3> 
       <p>Use Envelopes: <input type ='checkbox' id='map_env'> 
       <!-- THIS DOESN'T WORK YET! 
-      <p> Use cropped waveforms <input id="map_crop" type='checkbox'> 
-      <br>tmin: <input id="map_tmin" size=5 value='150'>
-      <br>tmax: <input id="map_tmax" size=5 value='300'>
-      -->
+      <p> Use cropped waveforms --><input id="map_crop" type='hidden'> 
+      <br>tmin: <input id="map_tmin" size=5 value='150' type='hidden'>
+      <br>tmax: <input id="map_tmax" size=5 value='300' type='hiddn'>
       <p> Frequency range for interferometry (both 0's to disable)
       <br>fmin: <input id="map_fmin" size=5 value='0'>
       <br>fmax: <input id="map_fmax" size=5 value='0'>
@@ -184,7 +183,7 @@
         5:<input id='z5' size=7 value = '-10.11'> 
         6:<input id='z6' size=7 value = '-12.135'> 
        <p>n:<input size=5 id="refr" value="1.78" >
-       <p>sign flip? <input type="checkbox" id="map_flip" checked>
+       <p>sign flip? <input type="checkbox" id="map_flip">
       <p align='center'> <input id='cfg_close' size=100 value="APPLY" onClick='hideMapConfig()' type='button'> 
       </span>
     </div> 
