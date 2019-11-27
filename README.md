@@ -1,6 +1,6 @@
 monutor  - jsROOT-based monitor for nuphase
 
-![screenshot](/Screenshot_2019-11-26 monutor.png)
+![Screenshot of monutor](screenshot.png)
 
 Instructions: 
 
