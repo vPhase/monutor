@@ -1,5 +1,6 @@
 monutor  - jsROOT-based monitor for nuphase
 
+!(screenshot)[screenshot.png]
 
 Instructions: 
 
