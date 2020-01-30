@@ -12,7 +12,7 @@
 #SBATCH --job-name=monutor 
 #SBATCH --output=monutor.out 
 #SBATCH --error=monutor.err
-#SBATCH --time=1:00:00
+#SBATCH --time=2:00:00
 #SBATCH --partition=kicp
 #SBATCH --account=kicp
 #SBATCH --nodes=1
