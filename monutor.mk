@@ -124,7 +124,7 @@ rootify.d: extract | $(ROOT_DIR)
 	echo >> $@
 	echo -n "rootify-hk: " >> $@ 
 	find $(RAW_DIR)/hk -mindepth 3 -type d -printf '$(ROOT_DIR)/hk/%P.root ' >> $@
-	find $(RAW_DIR) -type f -name *.tar -printf '$(ROOT_DIR)/%P ' | sed 's/.tar/.root/g' >> $@
+	find $(RAW_DIR)/hk -type f -name *.tar -printf '$(ROOT_DIR)/hk/%P ' | sed 's/.tar/.root/g' >> $@
 	echo >> $@
 endif
 endif #end remote host 
@@ -205,11 +205,13 @@ $(ROOT_DIR)/hk/%.root: $(RAW_DIR)/hk/%.tar
 	rm -rf $(@D)/$(*F)  
 	touch new_hk; 
 
+ifndef FORCE_TAR
 $(ROOT_DIR)/hk/%.root: $(RAW_DIR)/hk/% 
 	mkdir -p $(@D)
 	nuphaseroot-convert hk $< $@.tmp
 	mv $@.tmp $@ 
 	touch new_hk 
+endif
 
 
 
@@ -221,10 +223,12 @@ $(ROOT_DIR)/%.root: $(RAW_DIR)/%.tar
 	mv $@.tmp $@ 
 	rm -rf $(@D)/$(*F)  
 
+ifndef FORCE_TAR
 $(ROOT_DIR)/%.root: $(RAW_DIR)/% 
 	mkdir -p $(@D)
 	nuphaseroot-convert $(*F) $< $@.tmp
 	mv $@.tmp $@ 
+endif
 
 
 
