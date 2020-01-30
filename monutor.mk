@@ -193,7 +193,6 @@ $(RAW_DIR)/%.tar: $(RAW_DIR)/%
 # Do NOT delete tar files!
 .PRECIOUS: $(RAW_DIR)/%.tar 
 
-#special case hk 
 
 
 #special case hk 
@@ -277,7 +276,7 @@ $(HTML_DIR)/all_hk.root: new_hk  | $(HTML_DIR) rootify
 	mv $@.tmp $@
 
 
-$(HTML_DIR)/rootdata:  | $(HTML_DIR) 
+$(HTML_DIR)/rootdata: site.cfg | $(HTML_DIR) 
 	ln -sf $(ROOT_DIR) $(HTML_DIR)/rootdata 
 
 $(HTML_DIR)/jsroot: jsroot/scripts jsroot/style
