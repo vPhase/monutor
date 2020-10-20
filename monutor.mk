@@ -140,10 +140,13 @@ endif
 
 ###NO RAW_DIR
 else
-MAKE_RESTARTS=0
-MAKE_RESTARTS_FOR_FILTERED=0
+MAKE_RESTARTS_FOR_FILTERED=1
+ifndef MAKE_RESTARTS
 rootify.d: 
 	touch $@
+filtered.d: 
+	touch $@
+endif 
 endif
 
 ifeq (${MAKE_RESTARTS_FOR_FILTERED},${MAKE_RESTARTS})
