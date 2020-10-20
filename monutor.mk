@@ -81,6 +81,7 @@ endif
 
 ## Use slightly different rules for remote host vs. not. Assume not tarred if not using remote host
 
+ifdef RAW_DIR
 ifndef REMOTE_HOST
 ifndef MAKE_RESTARTS
 # This enumerates the necessary ROOT files 
@@ -134,6 +135,15 @@ ifdef REMOTE_HOST
 MAKE_RESTARTS_FOR_FILTERED=2
 else
 MAKE_RESTARTS_FOR_FILTERED=1
+endif
+
+
+###NO RAW_DIR
+else
+MAKE_RESTARTS=0
+MAKE_RESTARTS_FOR_FILTERED=0
+rootify.d: 
+	touch $@
 endif
 
 ifeq (${MAKE_RESTARTS_FOR_FILTERED},${MAKE_RESTARTS})
