@@ -295,7 +295,7 @@ $(HTML_DIR)/rfjs: rfjs/rf.js rfjs/FFT.js rfjs/KissFFT.js
 
 
 
-RUNLOG_LINK?=javascript:alert('Not configured. Set RUNLOG_LINK appropriately.') 
+RUNLOG_LINK?=javascript:alert("Not configured. Set RUNLOG_LINK appropriately.") 
 
 $(HTML_DIR)/index.html: html/index.html.in site.cfg
 	cp $< $@
