@@ -91,7 +91,7 @@ rootify.d: sync | $(ROOT_DIR)
 	echo >> $@
 	echo -n "rootify-status: " >> $@
 	find $(RAW_DIR) -type d -name status -printf '$(ROOT_DIR)/%P.root ' >> $@
-	find $(RAW_DIR) -type d -name status -printf '$(ROOT_DIR)/%P.decimated.root ' >> $@
+#	find $(RAW_DIR) -type d -name status -printf '$(ROOT_DIR)/%P.decimated.root ' >> $@
 	echo >> $@
 	echo -n "rootify-header: " >> $@
 	find $(RAW_DIR) -type d  -name header -printf '$(ROOT_DIR)/%P.root ' >> $@
