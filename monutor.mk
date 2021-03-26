@@ -218,6 +218,7 @@ endif
 $(ROOT_DIR)/%.root: $(RAW_DIR)/%.tar 
 	mkdir -p $(@D) 
 	tar -C $(@D) --extract -f $< 
+	sleep 1
 	nuphaseroot-convert $(*F) $(@D)/$(*F) $@.tmp
 	mv $@.tmp $@ 
 	rm -rf $(@D)/$(*F)  
