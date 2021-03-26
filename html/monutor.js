@@ -111,8 +111,8 @@ function prettyPrintHeader(vars)
   str += "<table><tr>"; 
   str += "<td>Event number: " + prefix+ vars["header.event_number"] +"</td>"; 
   str += "<td>Trigger number: " + prefix+vars["header.trig_number"] +"</td>"; 
-  if (!isSurface) str += "<td>Readout time (master): " + new Date(parseInt(vars["header.readout_time"][0])*1000 + parseInt(vars["header.readout_time_ns"][0])/1e6).toISOString() +"</td>"; 
-  str += "<td>Readout time (slave): " + new Date(parseInt(vars["header.readout_time"][1])*1000 + parseInt(vars["header.readout_time_ns"][1])/1e6).toISOString() +"</td></tr>"; 
+  if (!isSurface) str += "<td>Readout time (main): " + new Date(parseInt(vars["header.readout_time"][0])*1000 + parseInt(vars["header.readout_time_ns"][0])/1e6).toISOString() +"</td>"; 
+  str += "<td>Readout time (aux): " + new Date(parseInt(vars["header.readout_time"][1])*1000 + parseInt(vars["header.readout_time_ns"][1])/1e6).toISOString() +"</td></tr>"; 
   var isRF = parseInt(vars["header.trigger_type"]) == 2; 
   var isExt = parseInt(vars["header.trigger_type"]) == 3; 
   var isCalib = isRF && parseInt(vars["header.gate_flag"]); 
@@ -637,7 +637,7 @@ function hk()
   optAppend("Cut: <input id='hk_cut' size=20 value='Entry$%10==0'>");
   optAppend(" | Full xfers(<a href='javascript:transferHelp()'>?</a>) : <input type=checkbox id='hk_full_transfers' checked> <br>" ); 
   optAppend("Plot(<a onClick='return plotHelp()'>?</a>):<br>");
-  optAppend("<textarea id='plot_hk' cols=160 rows=5>hk.unixTime:hk.temp_master|||hk.unixTime:hk.temp_slave|||hk.unixTime:hk.temp_case;;;xtitle:time;title:Temperatures;ytitle:C;xtime:1;labels:master,slave,case\nhk.unixTime:hk.current_master|||hk.unixTime:hk.current_slave|||hk.unixTime:hk.current_frontend;;;xtitle:time;ytitle:mA;labels:master,slave,frontend;xtime:1;title:currents\nhk.unixTime:hk.disk_space_kB;;;title:disk;xtitle:time;xtime:1;labels:disk;ytitle:kB</textarea>");
+  optAppend("<textarea id='plot_hk' cols=160 rows=5>hk.unixTime:hk.temp_master|||hk.unixTime:hk.temp_slave|||hk.unixTime:hk.temp_case;;;xtitle:time;title:Temperatures;ytitle:C;xtime:1;labels:main board,aux board,case\nhk.unixTime:hk.current_master|||hk.unixTime:hk.current_slave|||hk.unixTime:hk.current_frontend;;;xtitle:time;ytitle:mA;labels:main board,aux board,frontend;xtime:1;title:currents\nhk.unixTime:hk.disk_space_kB;;;title:disk;xtitle:time;xtime:1;labels:disk;ytitle:kB</textarea>");
   optAppend("<br><input type='button' onClick='return hkTreeDraw()' value='Draw'>"); 
   optAppend("<a href='all_hk.root'>  (Download All HK ROOT File)</a>"); 
   
