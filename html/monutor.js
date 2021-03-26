@@ -363,7 +363,7 @@ function doDraw(page, ts, what,cut)
   var real_ts = []; 
   for (var it = 0; it < ts.length; it++)
   {
-    if (ts[it] != null) real_ts.push(ts[it]); 
+    if (ts[it] != null && ts[it].fEntries > 0 ) real_ts.push(ts[it]); 
   }
 
 
@@ -451,7 +451,11 @@ function doDraw(page, ts, what,cut)
 //        console.log(args); 
         real_ts[it].Draw(args, function(g,indices,ignore)
         {
-          if (g == null) return; 
+          if (g == null || g.fNpoints == 0) 
+          {
+            page.wants[ii]--; 
+            return; 
+          }
 
           var ii = indices[0]; 
           var jj = indices[1]; 
