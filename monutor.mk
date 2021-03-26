@@ -42,10 +42,10 @@ ifdef PROXY_HOST
 	-ssh -x -T $(PROXY_HOST) "cd $(startdir); rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(EVENT_DIR) $(LOCAL_DEST)/ >> $@"
 	-ssh -x -T $(PROXY_HOST) "cd $(startdir); rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(HEADER_DIR) $(LOCAL_DEST)/ >> $@"
 else
-	rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(STATUS_DIR) $(LOCAL_DEST)/ >> $@
-	rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(HK_DIR) $(LOCAL_DEST)/ >> $@
-	rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(EVENT_DIR) $(LOCAL_DEST)/ >> $@
-	rsync -av $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(HEADER_DIR) $(LOCAL_DEST)/ >> $@
+	-ssh -qx $(REMOTE_HOST) "cd $(REMOTE_PATH_BASE)/$(STATUS_DIR)  && find * -type d $(FIND_EXCLUDE_OPTS) -exec echo - {}/ \;" | rsync -av --exclude-from=- $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(STATUS_DIR) $(LOCAL_DEST)/ >> $@
+	-ssh -qx $(REMOTE_HOST) "cd $(REMOTE_PATH_BASE)/$(HK_DIR)      && find * -type d $(FIND_EXCLUDE_OPTS) -exec echo - {}/ \;" | rsync -av --exclude-from=- $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(HK_DIR) $(LOCAL_DEST)/ >> $@
+	-ssh -qx $(REMOTE_HOST) "cd $(REMOTE_PATH_BASE)/$(EVENT_DIR)   && find * -type d $(FIND_EXCLUDE_OPTS) -exec echo - {}/ \;" | tee exclude | rsync -av --exclude-from=- $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(EVENT_DIR) $(LOCAL_DEST)/ >> $@
+	-ssh -qx $(REMOTE_HOST) "cd $(REMOTE_PATH_BASE)/$(HEADER_DIR)  && find * -type d $(FIND_EXCLUDE_OPTS) -exec echo - {}/ \;" | rsync -av --exclude-from=- $(REMOTE_HOST):$(REMOTE_PATH_BASE)/$(HEADER_DIR) $(LOCAL_DEST)/ >> $@
 endif
 else
 	echo "No need to sync" 
