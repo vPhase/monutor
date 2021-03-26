@@ -271,8 +271,11 @@ $(HTML_DIR)/% : html/%
 new_hk: 
 	touch $@
 
+$(HTML_DIR)/all_hk.root: $(ROOT_DIR)/hk/all_hk.root
+	ln -sf $^ $@ 
+
 # Merge all housekeeping into a single root file since it's small 
-$(HTML_DIR)/all_hk.root: new_hk  | $(HTML_DIR) rootify
+$(ROOT_DIR)/hk/all_hk.root: new_hk  | $(HTML_DIR) rootify
 	hadd  -f $@.tmp $(ROOT_DIR)/hk/*/*/*.root
 	mv $@.tmp $@
 
